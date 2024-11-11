@@ -1,0 +1,24 @@
+cmake_minimum_required(VERSION 3.10)
+
+# Set the project name and version
+project(Profiling VERSION 1.0 LANGUAGES CXX)
+
+# Set the C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+# Enable PDB generation in Debug mode
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Zi")  # Generates PDB files
+set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /DEBUG")  # Include PDB during linking
+
+# Use file(GLOB ...) to include all .cpp files in the source and dtest directories
+file(GLOB_RECURSE SOURCES
+    "source/*.cpp")
+
+# Add the executable with all gathered source files
+add_executable(Profiling ${SOURCES})# Add the executable
+
+# Optionally add include directories
+target_include_directories(Profiling PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/source
+)

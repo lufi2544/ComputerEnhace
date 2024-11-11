@@ -1,0 +1,3 @@
+[submodule "Part1"]
+	path = Part1
+	url = git@github.com:lufi2544/Limited8086Machine.git

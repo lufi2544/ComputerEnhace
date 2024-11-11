@@ -1,0 +1,13 @@
+#General
+*.sln
+*.vcxproj
+*.filters
+*.user
+*.data
+obj/
+x64/
+.vs/
+.idea/
+LimitedMachine/
+bin/
+build/

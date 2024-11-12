@@ -18,7 +18,9 @@ file(GLOB_RECURSE SOURCES
 # Add the executable with all gathered source files
 add_executable(Profiling ${SOURCES})# Add the executable
 
+
 # Optionally add include directories
 target_include_directories(Profiling PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/source
+    ${CMAKE_CURRENT_SOURCE_DIR}/../
 )

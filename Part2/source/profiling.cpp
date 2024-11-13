@@ -1,28 +1,47 @@
 
 #include <iostream>
 #include "harvesine_formula.cpp"
+#include <random>
 
-int main(char** Args, int ArgsCount)
+
+void
+GetRandomCoords(u64 Seed, s64& X0, s64& Y0, s64& X1, s64& Y1)
+{
+    std::mt19937 generator(Seed);
+    std::uniform_int_distribution<s64> Distribution_X(-180, 180);
+    
+    s64 random_number_X0 = Distribution_X(generator);
+    s64 random_number_X1 = Distribution_X(generator);
+    
+    std::uniform_int_distribution<s64> Distribution_Y(-90, 90);
+    
+    s64 random_number_Y0 = Distribution_Y(generator);
+    s64 random_number_Y1 = Distribution_Y(generator);
+    
+    printf("Random Number: X0: %+lld X1: %+lld Y1: %+lld Y1: %+lld \n", random_number_X0, random_number_X1, random_number_Y0, random_number_Y1);
+}
+
+int main(int ArgsCount,char** Args)
 {
     
-    if(size == 0)
+    if(ArgsCount == 1)
     {
-        printf(stdout, "Usage: harvesine_generator_release.exe [random seed] [number of coordinate pairs to generate] \n");
+        fprintf(stdout, "Usage: %s [random seed] [number of coordinate pairs to generate] \n", Args[0]);
         return 1;
     }
     
     u64 RandomSeed = 0;
     u64 NumberOfPairs = 0;
-    for(int ArgsIndex = 0; ArgsIndex < ArgsCount; ++ArgsIndex)
+    for(int ArgsIndex = 1; ArgsIndex < ArgsCount; ++ArgsIndex)
     {
         char* Arg = Args[ArgsIndex];
         u64 ArgAsNumber = std::atoll(Arg);
-        if(ArgsIndex == 0)
+        if(ArgsIndex == 1)
         {
             // Random Seed
             RandomSeed = ArgAsNumber;
         }
-        else if(ArgsIndex == 1)
+        else if(ArgsIndex == 2)
         {
             // Number of Pairs to Generate
             NumberOfPairs = ArgAsNumber;
@@ -31,8 +50,6 @@ int main(char** Args, int ArgsCount)
         {
             printf("Too much Args passed-in \n");
         }
-        
-        
     }
     
     // HARVESINE SUM LOGIC
@@ -89,10 +106,14 @@ Array: category has a [] for the items.
 }
 ]
 }
-
-
-
 */
+    
+    // Generate 4 numbers randomly and pass them to the function.
+    s64 X0, X1, Y0, Y1;
+    
+    GetRandomCoords(120398711, X0, X1, Y0, Y1);
+    
+    
     
 	return 0;
 }

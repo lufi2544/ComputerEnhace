@@ -2,23 +2,24 @@
 #include <iostream>
 #include "harvesine_formula.cpp"
 #include <random>
+#include <cstdio>
 
 
 void
-GetRandomCoords(u64 Seed, s64& X0, s64& Y0, s64& X1, s64& Y1)
+RandomCoords(u64 Seed, f64& X0, f64& Y0, f64& X1, f64& Y1)
 {
     std::mt19937 generator(Seed);
     std::uniform_int_distribution<s64> Distribution_X(-180, 180);
     
-    s64 random_number_X0 = Distribution_X(generator);
-    s64 random_number_X1 = Distribution_X(generator);
+    X0 = Distribution_X(generator);
+    X1 = Distribution_X(generator);
     
     std::uniform_int_distribution<s64> Distribution_Y(-90, 90);
     
-    s64 random_number_Y0 = Distribution_Y(generator);
-    s64 random_number_Y1 = Distribution_Y(generator);
+    Y0 = Distribution_Y(generator);
+    Y1 = Distribution_Y(generator);
     
-    printf("Random Number: X0: %+lld X1: %+lld Y1: %+lld Y1: %+lld \n", random_number_X0, random_number_X1, random_number_Y0, random_number_Y1);
+    
 }
 
 int main(int ArgsCount,char** Args)
@@ -108,10 +109,41 @@ Array: category has a [] for the items.
 }
 */
     
-    // Generate 4 numbers randomly and pass them to the function.
-    s64 X0, X1, Y0, Y1;
     
-    GetRandomCoords(120398711, X0, X1, Y0, Y1);
+    
+    
+    FILE* json = std::fopen("data_coords.json", "w");
+    
+    const f64 EarthRadius = 6372.8;
+    
+    std::fprintf(json, "{ \n");
+    std::fprintf(json, "pairs: [ \n");
+    f64 Sum = 0;
+    for(u64 PairIndex = 0; PairIndex < NumberOfPairs; ++PairIndex)
+    {
+        // Generate 4 numbers randomly and pass them to the function.
+        f64 X0 = 0;
+        f64 X1 = 0;
+        f64 Y0 = 0;
+        f64 Y1 = 0;
+        RandomCoords(120131234123, X0, X1, Y0, Y1);
+        
+        Sum += ReferenceHaversine(X0, X1, Y0, Y1, EarthRadius);
+        std::fprintf(json, "     {\"X0:\" %.6f, \"X1:\" %.6f, \ Y0:\" %.6f, \"Y1:\" %.6f}", X0, X1, Y0, Y1);
+        if(PairIndex < NumberOfPairs - 1)
+        {
+            std::fprintf(json, ",");
+        }
+        
+        std::fprintf(json, "\n");
+    }
+    
+    std::fprintf(json, "]");
+    std::fprintf(json, "\n");
+    std::fprintf(json, "}");
+    std::fclose(json);
+    
+    std::cout << "Sum: " << Sum << std::endl;
     
     
     

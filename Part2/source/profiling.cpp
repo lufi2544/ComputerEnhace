@@ -70,23 +70,6 @@ f64 RandomInRange(random_series* Series, f64 Min, f64 Max)
 	return Result;
 }
 
-void
-RandomCoords(u64 Seed, f64& X0, f64& Y0, f64& X1, f64& Y1)
-{
-    std::mt19937 generator(Seed);
-    std::uniform_int_distribution<s64> Distribution_X(-180, 180);
-    
-    X0 = Distribution_X(generator);
-    X1 = Distribution_X(generator);
-    
-    std::uniform_int_distribution<s64> Distribution_Y(-90, 90);
-    
-    Y0 = Distribution_Y(generator);
-    Y1 = Distribution_Y(generator);
-    
-    
-}
-
 FILE*
 Open(const char* Name, const char* Extension)
 {
@@ -126,12 +109,14 @@ int main(int ArgsCount,char** Args)
     
     if(ArgsCount == 1)
     {
-        fprintf(stdout, "Usage: %s [random seed] [number of coordinate pairs to generate] \n", Args[0]);
+        fprintf(stdout, "Usage: %s [random seed] [number of coordinate pairs to generate] [mode] \n", Args[0]);
         return 1;
     }
     
     u64 RandomSeed = 0;
     u64 NumberOfPairs = 0;
+	bool bIsClusterMode = false;
+	s64 PairsPerCluster = 0;
     for(int ArgsIndex = 1; ArgsIndex < ArgsCount; ++ArgsIndex)
     {
         char* Arg = Args[ArgsIndex];
@@ -146,14 +131,32 @@ int main(int ArgsCount,char** Args)
             // Number of Pairs to Generate
             NumberOfPairs = ArgAsNumber;
         }
+		else if(ArgsIndex == 3)
+		{
+			bIsClusterMode = !strcmp(Arg, "cluster");
+			fprintf(stdout, "Using %s mode... \n", bIsClusterMode ? "Cluster" : "Uniform");
+			
+			if(!bIsClusterMode)
+			{
+				PairsPerCluster = U64Max;
+			}
+		}
         else
         {
             printf("Too much Args passed-in \n");
         }
     }
+	
+	if(ArgsCount < 4)
+	{
+		printf("Using Uniform Mode, not method specified.... \n");
+	}
     
     // HARVESINE SUM LOGIC
     // Create a Json file format with pairs -->  "pairs: { [{x0:, y0: }, {x1:, y1:}] }"
+	
+	// CLUSTER - Every N pairs we are going to change the X and Y center.
+	// UNIFORM - We are just going to generate X and Y centers every time.
     
     FILE* Json = Open("data", "json");
     
@@ -168,16 +171,40 @@ int main(int ArgsCount,char** Args)
     const f64 EarthRadius = 6372.8;
     f64 Sum = 0;
 	f64 SumCoeff = 1.0f / (f64)NumberOfPairs;
+	
 	f64 XCenter = 0;
 	f64 YCenter = 0;
+	
+	f64 XMax = 180;
+	f64 XMin = -XMax;
+	f64 YMax = 90;
+	f64 YMin = -YMax;
+	
+	u64 ClusterMaxPairs = bIsClusterMode ? NumberOfPairs / 64 + 1 : U64Max;
+	
 	
 	fprintf(Json, "{\"pairs\": [\n");
     for(u64 PairIndex = 0; PairIndex < NumberOfPairs; ++PairIndex)
     {
-        f64 X0 = RandomDegree(&Series,XCenter,  180, -180);
-		f64 Y0 = RandomDegree(&Series, YCenter, 90, -90);
-		f64 X1 = RandomDegree(&Series, XCenter, 180, -180);
-		f64 Y1 = RandomDegree(&Series, YCenter, 90, -90);
+		if(PairsPerCluster-- == 0)
+		{
+			PairsPerCluster = ClusterMaxPairs;
+			
+			// Generate new X and Y centers
+			XMin =(f64) RandomInRange(&Series, -180, 180);
+			XMax = (f64)RandomInRange(&Series, -180, 180);
+			XCenter = (f64)RandomInRange(&Series, XMin, XMax);
+			
+			YMin = (f64)RandomInRange(&Series, -90, 90);
+			YMax = (f64)RandomInRange(&Series, -90, 90);
+			YCenter = (f64)RandomInRange(&Series, YMin, YMax);
+			
+		}
+		
+        f64 X0 = RandomDegree(&Series, XCenter, XMin, XMax);
+		f64 Y0 = RandomDegree(&Series, YCenter, YMin, YMax);
+		f64 X1 = RandomDegree(&Series, XCenter, XMin, XMax);
+		f64 Y1 = RandomDegree(&Series, YCenter, YMin, YMax);
 		
 		f64 HaversineDistance = ReferenceHaversine(X0, Y0, X1, Y1, 6372.8);
 		Sum += SumCoeff*HaversineDistance;

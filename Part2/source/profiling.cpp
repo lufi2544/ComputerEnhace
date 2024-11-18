@@ -5,6 +5,71 @@
 #include <cstdio>
 
 
+#define _CRT_SECURE_NO_WARNINGS
+#define U64Max  UINT64_MAX
+
+
+struct random_series
+{
+	u64 A, B, C, D;
+};
+
+u64
+RotateLeft(u64 Value, int Times)
+{
+	u64 Result = (Value << Times) | (Value >> (64 - Times)); // Wrapping around the bits 10111111 << 3 | 10111111 >> (8 - 3) = 11111101.
+	return Result;
+}
+
+u64
+RandomU64(random_series* Input)
+{
+	u64 A = Input->A;
+	u64 B = Input->B;
+	u64 C = Input->C;
+	u64 D = Input->D;
+	
+	u64 E = A - RotateLeft(B, 27);
+	A = (B ^ RotateLeft(C, 17));
+	B = (C + D);
+	C = (D + E);
+	D = (E + A);
+	
+	Input->A = A;
+	Input->B = B;
+	Input->C = C;
+	Input->D = D;
+	
+	return D;
+}
+
+random_series
+Seed(u64 Value)
+{
+	random_series Result;
+	Result.A = 0xdeadbeef;
+	Result.B = Value;
+	Result.C = Value;
+	Result.D = Value;
+	
+	u32 Count = 20;
+	while(Count--)
+	{
+		RandomU64(&Result);
+	}
+	
+	return Result;
+}
+
+f64 RandomInRange(random_series* Series, f64 Min, f64 Max)
+{
+	int a  = 0;
+	f64 t = (f64)RandomU64(Series) / (f64)U64Max;
+	f64 Result = ((1 - t) * Min) + (t * Max);
+	
+	return Result;
+}
+
 void
 RandomCoords(u64 Seed, f64& X0, f64& Y0, f64& X1, f64& Y1)
 {
@@ -20,6 +85,40 @@ RandomCoords(u64 Seed, f64& X0, f64& Y0, f64& X1, f64& Y1)
     Y1 = Distribution_Y(generator);
     
     
+}
+
+FILE*
+Open(const char* Name, const char* Extension)
+{
+	char Temp[256];
+	sprintf(Temp, "%s.%s", Name, Extension);
+	
+	FILE* File = std::fopen(Temp, "wb");
+	if(!File)
+	{
+		fprintf(stderr, "Unable to open \"%s\" for writing.\"", Temp);
+	}
+	
+	return File;
+}
+
+f64
+RandomDegree(random_series* Series, f64 Center, f64 Radius, f64 MaxAllowed)
+{
+	f64 MinVal = Center - Radius;
+	if(MinVal < -MaxAllowed)
+	{
+		MinVal = -MaxAllowed;
+	}
+	
+	f64 MaxVal = Center + Radius;
+	if(MaxVal > MaxAllowed)
+	{
+		MaxVal = MaxAllowed;
+	}
+	
+	f64 Result = RandomInRange(Series, MinVal, MaxVal);
+	return Result;
 }
 
 int main(int ArgsCount,char** Args)
@@ -56,92 +155,40 @@ int main(int ArgsCount,char** Args)
     // HARVESINE SUM LOGIC
     // Create a Json file format with pairs -->  "pairs: { [{x0:, y0: }, {x1:, y1:}] }"
     
-    /*
-JSON FILES: 
-Java Script Object Notation - easy understandable by humans and easy to implement in different languages
-
-TArray<TMap<String, TArray<TMap<String, String>>>>
-
-- It is between "{}"
-- We could have different Categories -> 
- {
- "user": { ...  },
-"tasks": { ...   }
-}
-
-- And different Items inside each Category, that can be an Object Item or an Array Item
-
-Object:
-
-{
- "user": 
-{ 
-"id": 12324,
-"name": "Juanes",
-"age": 12039812309487
-},
-
-
-}
-
-Array: category has a [] for the items.
-
-{
- "user": 
-{ 
-"id": 12324,
-"name": "Juanes",
-"age": 12039812309487
-},
-
-"tasks": { [
-{
-"id": 13
-"name": LOLO
-"age": 123
-},
-{
-"id": 13,
-"name": "LOLO1",
-"age": 1209123
-}
-]
-}
-*/
+    FILE* Json = Open("data", "json");
     
-    
-    
-    
-    FILE* json = std::fopen("data_coords.json", "w");
-    
+	if(!Json)
+	{
+		return -1;
+	}
+	
+	random_series Series = Seed(RandomSeed);
+	
+	
     const f64 EarthRadius = 6372.8;
-    
-    std::fprintf(json, "{ \n");
-    std::fprintf(json, "pairs: [ \n");
     f64 Sum = 0;
+	f64 SumCoeff = 1.0f / (f64)NumberOfPairs;
+	f64 XCenter = 0;
+	f64 YCenter = 0;
+	
+	fprintf(Json, "{\"pairs\": [\n");
     for(u64 PairIndex = 0; PairIndex < NumberOfPairs; ++PairIndex)
     {
-        // Generate 4 numbers randomly and pass them to the function.
-        f64 X0 = 0;
-        f64 X1 = 0;
-        f64 Y0 = 0;
-        f64 Y1 = 0;
-        RandomCoords(120131234123, X0, X1, Y0, Y1);
-        
-        Sum += ReferenceHaversine(X0, X1, Y0, Y1, EarthRadius);
-        std::fprintf(json, "     {\"X0:\" %.6f, \"X1:\" %.6f, \ Y0:\" %.6f, \"Y1:\" %.6f}", X0, X1, Y0, Y1);
-        if(PairIndex < NumberOfPairs - 1)
-        {
-            std::fprintf(json, ",");
-        }
-        
-        std::fprintf(json, "\n");
+        f64 X0 = RandomDegree(&Series,XCenter,  180, -180);
+		f64 Y0 = RandomDegree(&Series, YCenter, 90, -90);
+		f64 X1 = RandomDegree(&Series, XCenter, 180, -180);
+		f64 Y1 = RandomDegree(&Series, YCenter, 90, -90);
+		
+		f64 HaversineDistance = ReferenceHaversine(X0, Y0, X1, Y1, 6372.8);
+		Sum += SumCoeff*HaversineDistance;
+		
+		const char* JSONSep = PairIndex == NumberOfPairs - 1 ? "\n" : " ,\n";
+		fprintf(Json, "    {\"x0\":%.16f, \"y0\":%.16f, \"x1\"%.16f, \"y1\":%.16f}%s", X0, Y0, X1, Y1, JSONSep);
+		
+		// TODO The file with the Harvesine raw data in bytes.
     }
-    
-    std::fprintf(json, "]");
-    std::fprintf(json, "\n");
-    std::fprintf(json, "}");
-    std::fclose(json);
+	fprintf(Json, "}");
+	fclose(Json);
     
     std::cout << "Sum: " << Sum << std::endl;
     

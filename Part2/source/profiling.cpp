@@ -71,10 +71,10 @@ f64 RandomInRange(random_series* Series, f64 Min, f64 Max)
 }
 
 FILE*
-Open(const char* Name, const char* Extension)
+Open(u64 NumOfPairs, const char* Name, const char* Extension)
 {
 	char Temp[256];
-	sprintf(Temp, "%s.%s", Name, Extension);
+	sprintf(Temp, "data_%llu_%s.%s", NumOfPairs, Name, Extension);
 	
 	FILE* File = std::fopen(Temp, "wb");
 	if(!File)
@@ -158,9 +158,10 @@ int main(int ArgsCount,char** Args)
 	// CLUSTER - Every N pairs we are going to change the X and Y center.
 	// UNIFORM - We are just going to generate X and Y centers every time.
     
-    FILE* Json = Open("data", "json");
+    FILE* Json = Open(NumberOfPairs, "pairs", "json");
+    FILE* Data = Open(NumberOfPairs, "data", "f64");
     
-	if(!Json)
+	if(!Json || !Data)
 	{
 		return -1;
 	}
@@ -211,6 +212,8 @@ int main(int ArgsCount,char** Args)
 		
 		const char* JSONSep = PairIndex == NumberOfPairs - 1 ? "\n" : " ,\n";
 		fprintf(Json, "    {\"x0\":%.16f, \"y0\":%.16f, \"x1\"%.16f, \"y1\":%.16f}%s", X0, Y0, X1, Y1, JSONSep);
+        
+        fwrite(&HaversineDistance, sizeof(HaversineDistance), 1, Data);
 		
 		// TODO The file with the Harvesine raw data in bytes.
     }

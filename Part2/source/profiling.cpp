@@ -1,9 +1,10 @@
 
+#include "types.h"
 #include <iostream>
-#include "harvesine_formula.cpp"
 #include <random>
 #include <cstdio>
-
+#include "harvesine_formula.h"
+#include "profiling.h"
 
 #define _CRT_SECURE_NO_WARNINGS
 #define U64Max  UINT64_MAX
@@ -14,14 +15,14 @@ struct random_series
 	u64 A, B, C, D;
 };
 
-u64
+static u64
 RotateLeft(u64 Value, int Times)
 {
 	u64 Result = (Value << Times) | (Value >> (64 - Times)); // Wrapping around the bits 10111111 << 3 | 10111111 >> (8 - 3) = 11111101.
 	return Result;
 }
 
-u64
+static u64
 RandomU64(random_series* Input)
 {
 	u64 A = Input->A;
@@ -43,7 +44,7 @@ RandomU64(random_series* Input)
 	return D;
 }
 
-random_series
+static random_series
 Seed(u64 Value)
 {
 	random_series Result;
@@ -61,7 +62,7 @@ Seed(u64 Value)
 	return Result;
 }
 
-f64 RandomInRange(random_series* Series, f64 Min, f64 Max)
+static f64 RandomInRange(random_series* Series, f64 Min, f64 Max)
 {
 	int a  = 0;
 	f64 t = (f64)RandomU64(Series) / (f64)U64Max;
@@ -70,7 +71,7 @@ f64 RandomInRange(random_series* Series, f64 Min, f64 Max)
 	return Result;
 }
 
-FILE*
+static FILE*
 Open(u64 NumOfPairs, const char* Name, const char* Extension)
 {
 	char Temp[256];
@@ -85,7 +86,7 @@ Open(u64 NumOfPairs, const char* Name, const char* Extension)
 	return File;
 }
 
-f64
+static f64
 RandomDegree(random_series* Series, f64 Center, f64 Radius, f64 MaxAllowed)
 {
 	f64 MinVal = Center - Radius;
@@ -104,7 +105,7 @@ RandomDegree(random_series* Series, f64 Center, f64 Radius, f64 MaxAllowed)
 	return Result;
 }
 
-int main(int ArgsCount,char** Args)
+int mainProfiling(int ArgsCount,char** Args)
 {
     
     if(ArgsCount == 1)
@@ -221,8 +222,5 @@ int main(int ArgsCount,char** Args)
 	fclose(Json);
     
     std::cout << "Sum: " << Sum << std::endl;
-    
-    
-    
 	return 0;
 }

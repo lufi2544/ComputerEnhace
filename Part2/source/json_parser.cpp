@@ -10,7 +10,7 @@
 // TODO: ?
 
 
-enum enum_json_character
+enum enum_json_token
 {
     character_None,
     character_parenthesis,
@@ -52,7 +52,58 @@ JsonValueAsBool { bool }
 */
 
 /* Output from the parsing. */
+
+enum enum_json_value_type
+{
+    type_None,
+    type_Number,
+    type_Bool,
+    type_String,
+};
+
+
+union json_value
+{
+    s32 Number;
+    bool Bool;
+    char* String = nullptr;
+};
+
+struct json_category
+{
+    char* Key = nullptr;
+    json_value Value;
+    enum_json_value_type ValueType = type_None;
+};
+
+
 struct json_object
 {
-    
+    json_category* Categories = nullptr;
+    s32 Size = 0;
 };
+
+json_object* CreateJson()
+{
+    
+    return nullptr;
+}
+
+
+json_category* MakeJsonCategory(char* CategoryKey, json_value CategoryValue, enum_json_value_type Type)
+{
+    json_category* result = (json_category*)malloc(sizeof(json_category));
+    result->Key = CategoryKey;
+    result->Value = CategoryValue;
+    result->ValueType = Type;
+    
+    return result;
+}
+
+void AddJsonCategory(json_object *Json, json_category *Category)
+{
+    Json->Size++;
+    realloc(Json->Categories, Json->Size * sizeof(json_category));
+}
+
+

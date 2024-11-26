@@ -1,4 +1,6 @@
 #include "types.h"
+#include <fstream>
+#include <cstdio>
 
 
 /*
@@ -13,14 +15,20 @@
 enum enum_json_token
 {
     character_None,
-    character_parenthesis,
     character_dpoints,
     character_open_braces,
     character_close_braces,
-    character_open_bracket,
+    character_open_square_bracket,
     character_close_square_bracket,
     character_coma,
     character_blank,
+};
+
+enum enum_parser_flags
+{
+    flag_open,
+    flag_completed,
+    flag_sub_category_open, /*  when a category is opened and we are writing some categories on the inside. */
 };
 
 
@@ -83,12 +91,68 @@ struct json_object
     s32 Size = 0;
 };
 
-json_object* CreateJson()
+enum_json_token GetToken(char Character)
 {
+    if(Character == ' ')
+    {
+        return enum_json_token::character_blank;
+    }
+    else if(Character == ':')
+    {
+        return enum_json_token::character_dpoints;
+    }
+    else if(Character == '{')
+    {
+        return enum_json_token::character_open_braces;
+    }
+    else if(Character == '}')
+    {
+        return enum_json_token::character_close_braces;
+    }
+    else if(Character == '[')
+    {
+        return enum_json_token::character_open_square_bracket;
+    }
+    else if(Character == ']')
+    {
+        return enum_json_token::character_close_square_bracket;
+    }
+    else if(Character == ',')
+    {
+        return enum_json_token::character_coma;
+    }
+    
+    return enum_json_token::character_None;
+}
+
+json_object* CreateJson(char* FileName)
+{
+    FILE* file = fopen(FileName, "r");
+    if(!file)
+    {
+        fprintf(stderr, "Could not open the JSON file...");
+        return nullptr;
+    }
+    
+    
+    fseek(file, 0, SEEK_END);
+    u32 Size = ftell(file);
+    char* Buffer = (char*)malloc(Size * sizeof(char));//TODO: Maybe checking if a +1 is needed here.
+    
+    // Get the file size;
+    fgets(Buffer, Size, file);
+    fclose(file);
+    
+    u16 Flags = 0;
+    for(u32 Index = 0; Index < Size; ++Index)
+    {
+        char BufferChar = Buffer[Index];
+        enum_json_token Token = GetToken(BufferChar);
+    }
+    
     
     return nullptr;
 }
-
 
 json_category* MakeJsonCategory(char* CategoryKey, json_value CategoryValue, enum_json_value_type Type)
 {
@@ -105,5 +169,3 @@ void AddJsonCategory(json_object *Json, json_category *Category)
     Json->Size++;
     realloc(Json->Categories, Json->Size * sizeof(json_category));
 }
-
-

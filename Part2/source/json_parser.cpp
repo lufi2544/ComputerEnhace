@@ -51,30 +51,33 @@ enum_json_token GetToken(char Character)
     }
     else if((Character > 64/* @ */ && Character < 91 /* [  */) 
             || (Character == 95/* _ */) 
-            || (Character > 96 /* ` */ && Character < 123 /* { */) )
+            || (Character > 96 /* ` */ && Character < 123 /* { */) 
+            || (Character == 46)
+            || ((Character > 47) && (Character < 58)) /* Numbers */
+            || (Character == '.'))
     {
         // Defining if we have a letter of the symbol _ which we accept.
-        return enum_json_token::token_Letter;
+        return enum_json_token::token_LetterOrNumber;
     }
     
     return enum_json_token::token_None;
 }
 
-bool CheckFlag(u32 Flags, enum_parser_flags FlagToCheck)
+bool CheckFlag(u16 Flags, enum_parser_flags FlagToCheck)
 {
-    return Flags & (1 << static_cast<u32>(FlagToCheck));
+    return Flags & (1 << static_cast<u16>(FlagToCheck));
 }
 
-void SetFlag(u32& Flags, enum_parser_flags FlagToSet, bool V)
+void SetFlag(u16& Flags, enum_parser_flags FlagToSet, bool V)
 {
     if(V)
     {
-        Flags |= (1 << static_cast<u32>(FlagToSet));
+        Flags |= (1 << static_cast<u16>(FlagToSet));
     }
     else
     {
-
-        Flags &= (~(1 << static_cast<u32>(FlagToSet)));
+        
+        Flags &= (~(1 << static_cast<u16>(FlagToSet)));
     }
 }
 
@@ -92,17 +95,33 @@ void ResetBuffer(char* Buffer, u32 *Size)
     *Size = 0;
 }
 
+char* MakeBuffer(u32 Size)
+{
+    char* result = (char*)malloc(sizeof(char) * Size + 1);
+    memset(result,'\0', Size + 1);
+    
+    return result;
+}
+
+char* MakeBufferCopy(char *Buffer, u32 BufferSize)
+{
+    char* result = MakeBuffer(BufferSize);
+    strncpy(result, Buffer, BufferSize);
+    
+    return result;
+}
+
 
 json_category MakeJsonCategory(category_context *CategoryContext, json_value CategoryValue, enum_json_value_type Type)
 {
     json_category result;
-     u32 BufferSize = sizeof(char) * CategoryContext->Size + 1;
+    u32 BufferSize = sizeof(char) * CategoryContext->Size + 1;
     char* CategoryKeyBuffer = (char*)malloc(BufferSize);
     //snprintf(CategoryKeyBuffer, BufferSize, "%s", CategoryContext->Key);
     memset(CategoryKeyBuffer, '\0', CategoryContext->Size + 1);
-strncpy(CategoryKeyBuffer, CategoryContext->Key, CategoryContext->Size);
-
-
+    strncpy(CategoryKeyBuffer, CategoryContext->Key, CategoryContext->Size);
+    
+    
     result.Key = CategoryKeyBuffer;
     result.Value = CategoryValue;
     result.ValueType = Type;
@@ -116,6 +135,43 @@ void AddJsonCategory(json_object *Json, json_category *Category)
 {
     Json->Size++;
     realloc(Json->Categories, Json->Size * sizeof(json_category));
+}
+
+void PushChar(char V, char *Buffer, u32& Size)
+{
+    Buffer[Size++] = V;
+}
+
+void EvaluateCategory(json_category *Category, char *Buffer, u32 *BufferSize)
+{
+    if(Category->ValueType == enum_json_value_type::type_String)
+    {
+        Category->Value.String = MakeBufferCopy(Buffer, *BufferSize);
+    }
+    else if(strncmp(Buffer, "true", *BufferSize) == 0)
+    {
+        Category->ValueType = enum_json_value_type::type_Bool;
+        Category->Value.Bool = true;
+    }
+    else if(strncmp(Buffer, "false", *BufferSize) == 0)
+    {
+        Category->ValueType = enum_json_value_type::type_Bool;
+        Category->Value.Bool = false;
+    }
+    else
+    {
+        Category->ValueType = enum_json_value_type::type_Number;
+        Category->Value.Number = atoll(Buffer);
+    }
+    
+    ResetBuffer(Buffer, BufferSize);
+    
+}
+
+void PushJsonCategory(json_object *Json, json_category *Category)
+{
+    Json->Categories[Json->Size++] = *Category;
+    *Category = json_category{};
 }
 
 json_object CreateJson(char* FileName)
@@ -143,7 +199,7 @@ json_object CreateJson(char* FileName)
     json_object Result;
     Result.Categories =(json_category*) malloc(sizeof(json_category) * Size);
     
-    u32 Flags = 0;
+    u16 Flags = 0;
     char TempBuffer[256];
     memset(TempBuffer, '\0', sizeof(TempBuffer));
     
@@ -164,125 +220,52 @@ json_object CreateJson(char* FileName)
         {
             if(!CheckFlag(Flags, enum_parser_flags::flag_Open))
             {
-            // Opening the Json
-            SetFlag(Flags, enum_parser_flags::flag_Open, true);
+                // Opening the Json
+                SetFlag(Flags, enum_parser_flags::flag_Open, true);
             }
             else
             {
                 // Handle SubCategory.
             }
         }
-            else if(Token == enum_json_token::token_DQuote)
+        else if(Token == enum_json_token::token_DQuote)
         {
-            // Finishing a Category Key. For now, this means that a Category String has finished, could be the Key of a Category or
-            // the Value as String.
-            
-            
-            if(!CheckFlag(Flags, enum_parser_flags::flag_CategoryOpen))
+            // We have something in the buffer.
+            if(TempBufferSize > 0)
             {
-                SetFlag(Flags, enum_parser_flags::flag_CategoryOpen, true);
-                TempCategory.bIsOpen = true;
-                continue;
-            }
-            
-            if(TempCategory.bIsOpen)
-            {
-                // Category is none, then we push category , this is the end of a String as Key
-                
-                // Push the TempString to make the Category Key
-                SetFlag(Flags, enum_parser_flags::flag_CategoryOpen, false);
-                category_context CategoryContext;
-                CategoryContext.Key = TempBuffer;
-                CategoryContext.Size = TempBufferSize;
-                
-                auto a = strlen(CategoryContext.Key);
-                auto b = strlen(TempBuffer);
-                TempCategory = MakeJsonCategory(&CategoryContext, json_value{}, enum_json_value_type::type_None);
-                ResetBuffer(TempBuffer, &TempBufferSize);
-                
-            }
-            else
-            {
-                if(!CheckFlag(Flags, enum_parser_flags::flag_ValueOpen))
+                if(TempCategory.Key)
                 {
-                    // Begining of a Value
-                    SetFlag(Flags, enum_parser_flags::flag_ValueOpen, true);
-                    continue;
+                    // Value Buffer as String.
+                    TempCategory.ValueType = enum_json_value_type::type_String;
                 }
                 else
                 {
-                    // End of a value as string, only case we close the value here.
-                    SetFlag(Flags, enum_parser_flags::flag_ValueOpen, false);
-                    if(TempCategory.bIsOpen)
-                    {
-                        char* ValueString = (char*)malloc(sizeof(char) * TempBufferSize + 1);
-                        ValueString[TempBufferSize] = '\0';
-                        strncpy(ValueString, TempBuffer, TempBufferSize);
-                        TempCategory.Value.String = ValueString;
-                        
-                        SetFlag(Flags, enum_parser_flags::flag_ValuePushed, true);
-                    }
-                    else
-                    {
-                        fprintf(stderr, "Value parsed but Category is NULL...");
-                        return {};
-                    }
+                    // Category Buffer
+                    category_context CategoryContext;
+                    CategoryContext.Key = TempBuffer;
+                    CategoryContext.Size = TempBufferSize;
+                    
+                    TempCategory = MakeJsonCategory(&CategoryContext, json_value{}, enum_json_value_type::type_None);
+                    ResetBuffer(TempBuffer, &TempBufferSize);
                 }
+                
             }
-            
         }
         else if(Token == enum_json_token::token_Dpoints)
         {
             // Starting a Value here.
             SetFlag(Flags, enum_parser_flags::flag_ValueOpen, true);
         }
-            else if(Token == enum_json_token::token_Letter)
-            {
-                // Json is Opened, proceed with the category
-                if(CheckFlag(Flags, enum_parser_flags::flag_CategoryOpen))
-                {
-                TempBuffer[TempBufferSize++] = BufferChar;
-                auto a = strlen(TempBuffer);
-                int f = 0;
-                int c = a;
-                int d = 3;
-                }
-        }
-        else if(Token == enum_json_token::token_Coma)
+        else if(Token == enum_json_token::token_LetterOrNumber)
         {
-            // TODO IMPLEMENT THE Bool, int categorization in the TempCategory.
+            PushChar(BufferChar, TempBuffer, TempBufferSize);
+        }
+        else if(Token == enum_json_token::token_Coma || Token == enum_json_token::token_CloseBraces)
+        {
+            // CHANGING THE CATEGORY
             
-            if(!TempCategory.bIsOpen)
-            {
-                fprintf(stderr, "No TempCategory when reaching to a coma...");
-                return {};
-            }
-            
-            // Optimization for the String.
-            if(CheckFlag(Flags, enum_parser_flags::flag_ValuePushed))
-            {
-                continue;
-            }
-            
-            if(strncmp(TempBuffer, "true", TempBufferSize))
-            {
-                TempCategory.ValueType = enum_json_value_type::type_Bool;
-                TempCategory.Value.Bool = true;
-            }
-            else if(strncmp(TempBuffer, "false", TempBufferSize))
-            {
-                TempCategory.ValueType = enum_json_value_type::type_Bool;
-                TempCategory.Value.Bool = false;
-            }
-            else
-            {
-                TempCategory.ValueType = enum_json_value_type::type_Number;
-                TempCategory.Value.Number = atoll(TempBuffer);
-            }
-            
-            TempCategory.bIsOpen = false;
-            ResetBuffer(TempBuffer, &TempBufferSize);
-            Result.Categories[Result.Size++] = TempCategory;
+            EvaluateCategory(&TempCategory, TempBuffer, &TempBufferSize);
+            PushJsonCategory(&Result, &TempCategory);
         }
         
     }

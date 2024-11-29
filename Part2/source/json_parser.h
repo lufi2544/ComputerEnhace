@@ -14,18 +14,18 @@ enum enum_json_token
     token_CloseSquareBracket,
     token_Coma,
     token_Blank,
-    token_Letter,
+    token_LetterOrNumber,
     token_DQuote,
 };
 
-enum enum_parser_flags : u32
+enum enum_parser_flags : u16
 {
-    flag_Open,
-    flag_completed,
-    flag_CategoryOpen,
-    flag_sub_CategoryOpen, /*  when a category is opened and we are writing some categories on the inside. */
-    flag_ValueOpen,
-    flag_ValuePushed,
+    flag_Open = 0,
+    flag_completed = 1,
+    flag_CategoryOpen = 2,
+    flag_sub_CategoryOpen = 3, /*  when a category is opened and we are writing some categories on the inside. */
+    flag_ValueOpen = 4,
+    flag_ValuePushed = 5,
 };
 
 

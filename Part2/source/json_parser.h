@@ -110,8 +110,8 @@ struct json_object
             Category.Release();
         }
         
-        Categories = nullptr;
         delete[] Categories;
+        Categories = nullptr;
     }
     
     void PushJsonCategory(json_category *Category);

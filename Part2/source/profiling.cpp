@@ -110,9 +110,8 @@ RandomDegree(random_series* Series, f64 Center, f64 Radius, f64 MaxAllowed)
 int mainProfiling(int ArgsCount,char** Args)
 {
     
-    json_object JsonObject = CreateJson("input.json");
-    
-    printf("JsonSize: %i ", JsonObject.Size);
+    json_object JsonObject("input.json");
+    JsonObject.Print();
     
     return 1;
     

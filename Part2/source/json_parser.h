@@ -81,16 +81,46 @@ struct json_category
     json_value Value;
     enum_json_value_type ValueType = type_None;
     bool bIsOpen = false;
+    
+    void Release()
+    {
+        if(Key)
+        {
+            delete[] Key;
+            Key = nullptr;
+        }
+        if (ValueType == type_String)
+        {
+            delete[] Value.String;
+            Value.String = nullptr;
+        }
+    }
 };
 
 
 struct json_object
 {
+    
+    json_object(const char* JsonFileName);
+    ~json_object()
+    {
+        for(int i = 0; i < Size; ++i)
+        {
+            json_category Category = Categories[i];
+            Category.Release();
+        }
+        
+        Categories = nullptr;
+        delete[] Categories;
+    }
+    
+    void PushJsonCategory(json_category *Category);
+    
+    void Print();
+    
     json_category* Categories = nullptr;
+    const char* Name = nullptr;
     s32 Size = 0;
 };
-
-
-json_object CreateJson(char* FileName);
 
 #endif //JSON_PARSER_H

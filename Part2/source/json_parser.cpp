@@ -168,36 +168,32 @@ void EvaluateCategory(json_category *Category, char *Buffer, u32 *BufferSize)
     
 }
 
-void PushJsonCategory(json_object *Json, json_category *Category)
+void json_object::PushJsonCategory(json_category *Category)
 {
-    Json->Categories[Json->Size++] = *Category;
+    Categories[Size++] = *Category;
     *Category = json_category{};
 }
 
-json_object CreateJson(char* FileName)
+json_object::json_object(const char* FileName)
 {
     FILE* file = fopen(FileName, "rb");
     if(!file)
     {
         fprintf(stderr, "Could not open the JSON file...");
-        return { };
+        return;
     }
     
     
     fseek(file, 0, SEEK_END);
     u32 Size = ftell(file);
     rewind(file);
-    char* Buffer = (char*)malloc(Size * sizeof(char) + 1);//TODO: Maybe checking if a +1 is needed here.
-    Buffer[Size] = '\0';
-    
+    char* Buffer = MakeBuffer(Size);
     // Get the file size;
     fread(Buffer, sizeof(char), Size, file);
-    Buffer[Size] = '\0';
-    
     fclose(file);
     
-    json_object Result;
-    Result.Categories =(json_category*) malloc(sizeof(json_category) * Size);
+    Name = FileName;
+    Categories =(json_category*) malloc(sizeof(json_category) * Size);
     
     u16 Flags = 0;
     char TempBuffer[256];
@@ -265,11 +261,43 @@ json_object CreateJson(char* FileName)
             // CHANGING THE CATEGORY
             
             EvaluateCategory(&TempCategory, TempBuffer, &TempBufferSize);
-            PushJsonCategory(&Result, &TempCategory);
+            PushJsonCategory(&TempCategory);
         }
-        
     }
     
-    
-    return Result;
+}
+
+void json_object::Print()
+{
+    printf("Printing Json: %s \n", Name);
+    for(int i = 0; i < Size; ++i)
+    {
+        json_category Category = Categories[i];
+        
+        char Buffer[32];
+        memset(Buffer, '\0', 32);
+        
+        json_value V = Category.Value;
+        if(Category.ValueType == enum_json_value_type::type_String)
+        {
+            strncpy(Buffer, V.String, strlen(V.String));
+        }
+        else if(Category.ValueType == enum_json_value_type::type_Number)
+        {
+            snprintf(Buffer, sizeof(Buffer), "%.2f", V.Number);
+        }
+        else if(Category.ValueType == enum_json_value_type::type_Bool)
+        {
+            if(V.Bool)
+            {
+                snprintf(Buffer, sizeof(Buffer), "true");
+            }
+            else
+            {
+                snprintf(Buffer, sizeof(Buffer), "false");
+            }
+        }
+        
+        printf("%s : %s \n", Category.Key, Buffer);
+    }
 }

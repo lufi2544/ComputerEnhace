@@ -1,6 +1,6 @@
 version(1);
 
-project_name = "Limited8086Simulator";
+project_name = "JsonParser";
 
 patterns = {
 	"*.c",
@@ -20,6 +20,10 @@ load_paths = {
 	{
 		{ {"."}, .recursive = true, .relative = true }, .os = "win"
 	},
+
+	{
+		{ {"."}, .recursive = true, .relative = true }, .os = "mac"
+	},
 };
 
 command_list = {
@@ -33,6 +37,17 @@ command_list = {
 			{ "build.bat", .os = "win" },
 		},
 	},
+
+	{
+		.name = "build",
+		.out = "*compilation*",
+		.footer_panel = true,
+		.save_dirty_files = true,
+		.cursor_at_end = false,
+		.cmd = {
+			{ "build.sh", .os = "mac" },
+		},
+	},
 	
 	{
 		.name = "run",
@@ -42,6 +57,17 @@ command_list = {
 		.cursor_at_end = false,
 		.cmd = {
 			{ "run.bat", .os = "win" },
+		},
+	},
+
+	{
+		.name = "run",
+		.out = "*compilation*",
+		.footer_panel = true,
+		.save_dirty_files = true,
+		.cursor_at_end = false,
+		.cmd = {
+			{ "run.sh", .os = "mac" },
 		},
 	},
 

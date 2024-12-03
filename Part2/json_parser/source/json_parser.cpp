@@ -222,6 +222,8 @@ json_object::json_object(const char* FileName)
             else
             {
                 // Handle SubCategory.
+                // Here we have another category, so we have to create a json_object
+                
             }
         }
         else if(Token == enum_json_token::token_DQuote)
@@ -269,6 +271,9 @@ json_object::json_object(const char* FileName)
 
 void json_object::Print()
 {
+    if(!Name)
+        return;
+    
     printf("Printing Json: %s \n", Name);
     for(int i = 0; i < Size; ++i)
     {

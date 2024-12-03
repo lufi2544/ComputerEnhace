@@ -105,16 +105,8 @@ RandomDegree(random_series* Series, f64 Center, f64 Radius, f64 MaxAllowed)
 	return Result;
 }
 
-#include "json_parser.h"
-
 int mainProfiling(int ArgsCount,char** Args)
 {
-    
-    json_object JsonObject("input.json");
-    JsonObject.Print();
-    
-    return 1;
-    
     if(ArgsCount == 1)
     {
         fprintf(stdout, "Usage: %s [random seed] [number of coordinate pairs to generate] [mode] \n", Args[0]);

@@ -2,7 +2,7 @@
 
 #ifndef JSON_PARSER_H
 #define JSON_PARSER_H
-
+#include "types.h"
 
 enum enum_json_token
 {
@@ -66,13 +66,12 @@ enum enum_json_value_type
     type_String,
 };
 
-
 union json_value
 {
-    char* String = nullptr;
+    char* String;
+    struct json_object* json;
     float Number;
     bool Bool;
-    u8 _pad[3];
 };
 
 struct json_category
@@ -97,7 +96,8 @@ struct json_category
     }
 };
 
-
+// Maybe making a different struct for this object, so we can have a handler and a json 
+// because in the subcategory is a bit weird.
 struct json_object
 {
     
@@ -122,5 +122,9 @@ struct json_object
     const char* Name = nullptr;
     s32 Size = 0;
 };
+
+
+
+
 
 #endif //JSON_PARSER_H

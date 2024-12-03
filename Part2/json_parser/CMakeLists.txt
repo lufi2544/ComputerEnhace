@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 # Set the project name and version
-project(Profiling VERSION 1.0 LANGUAGES CXX)
+project(JsonParser VERSION 1.0 LANGUAGES CXX)
 
 # Set the C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -16,11 +16,11 @@ file(GLOB_RECURSE SOURCES
     "source/*.cpp")
 
 # Add the executable with all gathered source files
-add_executable(Profiling ${SOURCES})# Add the executable
+add_executable(JsonParser ${SOURCES})# Add the executable
 
 
 # Optionally add include directories
-target_include_directories(Profiling PRIVATE
+target_include_directories(JsonParser PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/source
-    ${CMAKE_CURRENT_SOURCE_DIR}/../
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../
 )

@@ -144,16 +144,22 @@ void PushChar(char V, char *Buffer, u32& Size)
 
 void EvaluateCategory(json_category *Category, char *Buffer, u32 *BufferSize)
 {
+    if(Category->ValueType == enum_json_value_type::type_None)
+    {
+        ResetBuffer(Buffer, BufferSize);
+        return;
+    }
+    
     if(Category->ValueType == enum_json_value_type::type_String)
     {
         Category->Value.String = MakeBufferCopy(Buffer, *BufferSize);
     }
-    else if(strncmp(Buffer, "true", *BufferSize) == 0)
+    else if((*BufferSize > 0) && strncmp(Buffer, "true", *BufferSize) == 0)
     {
         Category->ValueType = enum_json_value_type::type_Bool;
         Category->Value.Bool = true;
     }
-    else if(strncmp(Buffer, "false", *BufferSize) == 0)
+    else if((*BufferSize > 0) && strncmp(Buffer, "false", *BufferSize) == 0)
     {
         Category->ValueType = enum_json_value_type::type_Bool;
         Category->Value.Bool = false;
@@ -165,15 +171,17 @@ void EvaluateCategory(json_category *Category, char *Buffer, u32 *BufferSize)
     }
     
     ResetBuffer(Buffer, BufferSize);
-    
 }
 
 void json_object::PushJsonCategory(json_category *Category)
 {
+    if(Category->ValueType != enum_json_value_type::type_None)
+    {
     u32 TempSize = Size;
     Categories = (json_category*)realloc(Categories, ++TempSize * sizeof(json_category));
     Categories[Size++] = *Category;
-    *Category = json_category{};
+        *Category = json_category{};
+    }
 }
 
 json_object::json_object(const char* FileName)
@@ -196,14 +204,66 @@ json_object::json_object(const char* FileName)
     
     Name = FileName;
     
+    ParseBuffer(Buffer, Size, 0);
+}
+
+void json_object::Print()
+{
+    
+    for(int i = 0; i < Size; ++i)
+    {
+        json_category Category = Categories[i];
+            json_value V = Category.Value;
+        if(Category.ValueType == enum_json_value_type::type_Json)
+        {
+            printf("%s :\n", Category.Key);
+            printf("{ \n");
+            V.Json->Print();
+            printf("} \n");
+        }
+        else
+        {
+            char Buffer[32];
+            memset(Buffer, '\0', 32);
+            
+            
+        if(Category.ValueType == enum_json_value_type::type_String)
+        {
+            strncpy(Buffer, V.String, strlen(V.String));
+        }
+        else if(Category.ValueType == enum_json_value_type::type_Number)
+        {
+            snprintf(Buffer, sizeof(Buffer), "%.2f", V.Number);
+        }
+        else if(Category.ValueType == enum_json_value_type::type_Bool)
+        {
+            if(V.Bool)
+            {
+                snprintf(Buffer, sizeof(Buffer), "true");
+            }
+            else
+            {
+                snprintf(Buffer, sizeof(Buffer), "false");
+            }
+        }
+        
+            printf("%s : %s \n", Category.Key, Buffer);
+        }
+    }
+}
+
+ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex /*= 0*/)
+{
+    u32 ReadChars = 0;
     u16 Flags = 0;
     char TempBuffer[256];
     memset(TempBuffer, '\0', sizeof(TempBuffer));
     
     json_category TempCategory;
     u32 TempBufferSize = 0;
-    for(u32 Index = 0; Index < Size; ++Index)
+    for(u32 Index = FirstIndex; Index < BufferSize; ++Index)
     {
+        ++ReadChars;
         char BufferChar = Buffer[Index];
         enum_json_token Token = GetToken(BufferChar);
         
@@ -222,11 +282,23 @@ json_object::json_object(const char* FileName)
             }
             else
             {
+                if(TempCategory.Key)
+                {
+                    TempCategory.ValueType = enum_json_value_type::type_Json;
+                }
+                
                 // Handle SubCategory.
                 // Here we have another category, so we have to create a json_object
                 //NOTE: for now lets handle a simple category.
                 
+                //TODO: MEMORY!!! Is this needed?
+                json_object* SubJson = (json_object*)malloc(sizeof(json_object));
+                new (SubJson) json_object();
                 
+                u32 SubJsonReadChars = SubJson->ParseBuffer(Buffer, BufferSize, Index + 1);
+                Index += SubJsonReadChars;
+                TempCategory.Value.Json = SubJson;
+                PushJsonCategory(&TempCategory);
             }
         }
         else if(Token == enum_json_token::token_DQuote)
@@ -268,46 +340,14 @@ json_object::json_object(const char* FileName)
             EvaluateCategory(&TempCategory, TempBuffer, &TempBufferSize);
             PushJsonCategory(&TempCategory);
             
-            // if we reach here we can push the Json object to the parent
+            // TODO REVISIT
+            if(Token == enum_json_token::token_CloseBraces)
+            {
+                break; 
+                }
+            
         }
     }
     
-}
-
-void json_object::Print()
-{
-    if(!Name)
-        return;
-    
-    printf("Printing Json: %s \n", Name);
-    for(int i = 0; i < Size; ++i)
-    {
-        json_category Category = Categories[i];
-        
-        char Buffer[32];
-        memset(Buffer, '\0', 32);
-        
-        json_value V = Category.Value;
-        if(Category.ValueType == enum_json_value_type::type_String)
-        {
-            strncpy(Buffer, V.String, strlen(V.String));
-        }
-        else if(Category.ValueType == enum_json_value_type::type_Number)
-        {
-            snprintf(Buffer, sizeof(Buffer), "%.2f", V.Number);
-        }
-        else if(Category.ValueType == enum_json_value_type::type_Bool)
-        {
-            if(V.Bool)
-            {
-                snprintf(Buffer, sizeof(Buffer), "true");
-            }
-            else
-            {
-                snprintf(Buffer, sizeof(Buffer), "false");
-            }
-        }
-        
-        printf("%s : %s \n", Category.Key, Buffer);
-    }
+    return ReadChars;
 }

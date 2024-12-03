@@ -1,3 +1,3 @@
 @echo off
 cd build/Debug
-Profiling.exe 
+JsonParser.exe 

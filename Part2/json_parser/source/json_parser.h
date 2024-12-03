@@ -64,12 +64,13 @@ enum enum_json_value_type
     type_Number,
     type_Bool,
     type_String,
+    type_Json,
 };
 
 union json_value
 {
     char* String;
-    struct json_object* json;
+    struct json_object* Json;
     float Number;
     bool Bool;
 };
@@ -92,6 +93,10 @@ struct json_category
             delete[] Value.String;
             Value.String = nullptr;
         }
+        else if(ValueType == type_Json)
+        {
+            delete Value.Json;
+        }
     }
 };
 
@@ -100,7 +105,9 @@ struct json_category
 struct json_object
 {
     
+    json_object() = default;
     json_object(const char* JsonFileName);
+    
     ~json_object()
     {
         for(int i = 0; i < Size; ++i)
@@ -113,8 +120,9 @@ struct json_object
         Categories = nullptr;
     }
     
-    void PushJsonCategory(json_category *Category);
     
+     u32 ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex = 0);
+    void PushJsonCategory(json_category *Category);
     void Print();
     
     json_category* Categories = nullptr;

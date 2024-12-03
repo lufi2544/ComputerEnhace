@@ -79,7 +79,6 @@ struct json_category
     char* Key = nullptr;
     json_value Value;
     enum_json_value_type ValueType = type_None;
-    bool bIsOpen = false;
     
     void Release()
     {
@@ -120,6 +119,7 @@ struct json_object
     
     json_category* Categories = nullptr;
     const char* Name = nullptr;
+    json_object* Parent = nullptr;
     s32 Size = 0;
 };
 

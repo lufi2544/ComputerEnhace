@@ -170,6 +170,8 @@ void EvaluateCategory(json_category *Category, char *Buffer, u32 *BufferSize)
 
 void json_object::PushJsonCategory(json_category *Category)
 {
+    u32 TempSize = Size;
+    Categories = (json_category*)realloc(Categories, ++TempSize * sizeof(json_category));
     Categories[Size++] = *Category;
     *Category = json_category{};
 }
@@ -193,7 +195,6 @@ json_object::json_object(const char* FileName)
     fclose(file);
     
     Name = FileName;
-    Categories =(json_category*) malloc(sizeof(json_category) * Size);
     
     u16 Flags = 0;
     char TempBuffer[256];
@@ -223,6 +224,8 @@ json_object::json_object(const char* FileName)
             {
                 // Handle SubCategory.
                 // Here we have another category, so we have to create a json_object
+                //NOTE: for now lets handle a simple category.
+                
                 
             }
         }
@@ -264,6 +267,8 @@ json_object::json_object(const char* FileName)
             
             EvaluateCategory(&TempCategory, TempBuffer, &TempBufferSize);
             PushJsonCategory(&TempCategory);
+            
+            // if we reach here we can push the Json object to the parent
         }
     }
     

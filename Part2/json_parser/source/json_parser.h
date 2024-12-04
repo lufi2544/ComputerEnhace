@@ -2,6 +2,7 @@
 
 #ifndef JSON_PARSER_H
 #define JSON_PARSER_H
+
 #include "types.h"
 
 enum enum_json_token
@@ -26,6 +27,7 @@ enum enum_parser_flags : u16
     flag_sub_CategoryOpen = 3, /*  when a category is opened and we are writing some categories on the inside. */
     flag_ValueOpen = 4,
     flag_ValuePushed = 5,
+    flag_String_Opened = 6,
 };
 
 
@@ -121,7 +123,7 @@ struct json_object
     }
     
     
-     u32 ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex = 0);
+    u32 ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex = 0);
     void PushJsonCategory(json_category *Category);
     void Print();
     

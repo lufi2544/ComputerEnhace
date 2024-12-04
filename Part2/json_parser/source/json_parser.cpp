@@ -9,12 +9,6 @@
   * Json Parser that is meant to have a Json file as input and then parse it to some object that we can extract values from.
 */
 
-
-
-// TODO: ?
-
-
-
 enum_json_token GetToken(char Character)
 {
     if(Character == ' ')
@@ -164,7 +158,7 @@ void EvaluateCategory(json_category *Category, char *Buffer, u32 *BufferSize)
         Category->ValueType = enum_json_value_type::type_Bool;
         Category->Value.Bool = false;
     }
-    else
+    else if(Category->ValueType == enum_json_value_type::type_Number)
     {
         Category->ValueType = enum_json_value_type::type_Number;
         Category->Value.Number = atoll(Buffer);
@@ -177,9 +171,9 @@ void json_object::PushJsonCategory(json_category *Category)
 {
     if(Category->ValueType != enum_json_value_type::type_None)
     {
-    u32 TempSize = Size;
-    Categories = (json_category*)realloc(Categories, ++TempSize * sizeof(json_category));
-    Categories[Size++] = *Category;
+        u32 TempSize = Size;
+        Categories = (json_category*)realloc(Categories, ++TempSize * sizeof(json_category));
+        Categories[Size++] = *Category;
         *Category = json_category{};
     }
 }
@@ -213,7 +207,7 @@ void json_object::Print()
     for(int i = 0; i < Size; ++i)
     {
         json_category Category = Categories[i];
-            json_value V = Category.Value;
+        json_value V = Category.Value;
         if(Category.ValueType == enum_json_value_type::type_Json)
         {
             printf("%s :\n", Category.Key);
@@ -224,35 +218,35 @@ void json_object::Print()
         else
         {
             char Buffer[32];
-            memset(Buffer, '\0', 32);
+            memset(Buffer, '\0', ArrayCount(Buffer));
             
             
-        if(Category.ValueType == enum_json_value_type::type_String)
-        {
-            strncpy(Buffer, V.String, strlen(V.String));
-        }
-        else if(Category.ValueType == enum_json_value_type::type_Number)
-        {
-            snprintf(Buffer, sizeof(Buffer), "%.2f", V.Number);
-        }
-        else if(Category.ValueType == enum_json_value_type::type_Bool)
-        {
-            if(V.Bool)
+            if(Category.ValueType == enum_json_value_type::type_String)
             {
-                snprintf(Buffer, sizeof(Buffer), "true");
+                strncpy(Buffer, V.String, strlen(V.String));
             }
-            else
+            else if(Category.ValueType == enum_json_value_type::type_Number)
             {
-                snprintf(Buffer, sizeof(Buffer), "false");
+                snprintf(Buffer, sizeof(Buffer), "%.2f", V.Number);
             }
-        }
-        
+            else if(Category.ValueType == enum_json_value_type::type_Bool)
+            {
+                if(V.Bool)
+                {
+                    snprintf(Buffer, sizeof(Buffer), "true");
+                }
+                else
+                {
+                    snprintf(Buffer, sizeof(Buffer), "false");
+                }
+                
+            }
             printf("%s : %s \n", Category.Key, Buffer);
         }
     }
 }
 
- u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex /*= 0*/)
+u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex /*= 0*/)
 {
     u32 ReadChars = 0;
     u16 Flags = 0;
@@ -306,6 +300,7 @@ void json_object::Print()
             // We have something in the buffer.
             if(TempBufferSize > 0)
             {
+                SetFlag(Flags, enum_parser_flags::flag_String_Opened, false);
                 if(TempCategory.Key)
                 {
                     // Value Buffer as String.
@@ -323,6 +318,10 @@ void json_object::Print()
                 }
                 
             }
+            else
+            {
+                SetFlag(Flags, enum_parser_flags::flag_String_Opened, true);
+            }
         }
         else if(Token == enum_json_token::token_Dpoints)
         {
@@ -332,6 +331,10 @@ void json_object::Print()
         else if(Token == enum_json_token::token_LetterOrNumber)
         {
             PushChar(BufferChar, TempBuffer, TempBufferSize);
+            if(!CheckFlag(Flags, enum_parser_flags::flag_String_Opened))
+            {
+                TempCategory.ValueType = enum_json_value_type::type_Number;
+            }
         }
         else if(Token == enum_json_token::token_Coma || Token == enum_json_token::token_CloseBraces)
         {
@@ -344,7 +347,7 @@ void json_object::Print()
             if(Token == enum_json_token::token_CloseBraces)
             {
                 break; 
-                }
+            }
             
         }
     }

@@ -215,6 +215,28 @@ void json_object::Print()
             V.Json->Print();
             printf("} \n");
         }
+        else if(Category.ValueType == enum_json_value_type::type_Array)
+        {
+            printf("%s: \n", Category.Key);
+            printf("[ ");
+            json_array& ArrayRef = Category.Value.JsonArray;
+            for(int i = 0; i < ArrayRef.Size; ++i)
+            {
+                // TODO TYPE CHECK HERE
+                float Num = ArrayRef.Value.NumberArray[i];
+                
+                if(i < ArrayRef.Size - 1)
+                {
+                printf("%.2f , ", Num);
+                }
+                else
+                {
+                    printf("%.2f", Num);
+                }
+            }
+            
+            printf(" ]\n");
+        }
         else
         {
             char Buffer[32];
@@ -341,10 +363,20 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
         {
             PushChar(BufferChar, TempBuffer, TempBufferSize);
             
-            if(!CheckFlag(Flags, enum_parser_flags::flag_Array_Opened) && !CheckFlag(Flags, enum_parser_flags::flag_String_Opened))
+            
+            // We are doing this all the time we find a letter or number, maybe figure out a way of set this once.FLAG?
+            if(!CheckFlag(Flags, enum_parser_flags::flag_String_Opened))
             {
+                if(!CheckFlag(Flags, enum_parser_flags::flag_Array_Opened))
+                {
                 TempCategory.ValueType = enum_json_value_type::type_Number;
+                }
+                else
+                {
+                    TempCategory.Value.JsonArray.Type = type_Number;
+                }
             }
+            
         }
         else if((!CheckFlag(Flags, enum_parser_flags::flag_Array_Opened)) && (Token == enum_json_token::token_Coma || Token == enum_json_token::token_CloseBraces))
         {
@@ -364,12 +396,30 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
         {
             SetFlag(Flags, enum_parser_flags::flag_Array_Opened, true);
             TempCategory.ValueType = enum_json_value_type::type_Array;
-            
         }
         else if(Token == enum_json_token::token_CloseSquareBracket)
         {
             SetFlag(Flags, enum_parser_flags::flag_Array_Opened, false);
-            TempCategory.
+            
+            // PUSH THE LAST VALUE
+            TempFloatArray[FloatArraySize++] = atoll(TempBuffer);
+            ResetBuffer(TempBuffer, &TempBufferSize);
+            
+            
+            // TODO CHECK THE TYPE AND COPY ARRAY ACCORDINGLY
+            json_array& ArrayRef = TempCategory.Value.JsonArray;
+            ArrayRef.Size = FloatArraySize;
+            float* ArrayAsFloats = (float*)malloc(sizeof(float) * ArrayRef.Size);
+            for(u8 Index = 0; Index < ArrayRef.Size; ++Index)
+            {
+                ArrayAsFloats[Index] = TempFloatArray[Index];
+            }
+            
+            ArrayRef.Value.NumberArray = ArrayAsFloats;
+            
+            // Reseting the ArraySize to reuse it.
+            FloatArraySize = 0;
+            
         }
         else if(Token == enum_json_token::token_Coma)
         {

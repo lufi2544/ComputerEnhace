@@ -82,6 +82,7 @@ union json_array_value
 struct json_array
 {
     json_array_value Value;
+    enum_json_value_type Type;
     u8 Size;
 };
 

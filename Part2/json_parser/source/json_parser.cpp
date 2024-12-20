@@ -136,24 +136,24 @@ void PushChar(char V, char *Buffer, u32& Size)
     Buffer[Size++] = V;
 }
 
-void EvaluateCategory(json_category *Category, char *Buffer, u32 *BufferSize)
+void EvaluateCategory(json_category *Category, char *TempBuffer, u32 *TempBufferSize)
 {
     if(Category->ValueType == enum_json_value_type::type_None)
     {
-        ResetBuffer(Buffer, BufferSize);
+        ResetBuffer(TempBuffer, TempBufferSize);
         return;
     }
     
     if(Category->ValueType == enum_json_value_type::type_String)
     {
-        Category->Value.String = MakeBufferCopy(Buffer, *BufferSize);
+        Category->Value.String = MakeBufferCopy(TempBuffer, *TempBufferSize);
     }
-    else if((*BufferSize > 0) && strncmp(Buffer, "true", *BufferSize) == 0)
+    else if((*TempBufferSize > 0) && strncmp(TempBuffer, "true", *TempBufferSize) == 0)
     {
         Category->ValueType = enum_json_value_type::type_Bool;
         Category->Value.Bool = true;
     }
-    else if((*BufferSize > 0) && strncmp(Buffer, "false", *BufferSize) == 0)
+    else if((*TempBufferSize > 0) && strncmp(TempBuffer, "false", *TempBufferSize) == 0)
     {
         Category->ValueType = enum_json_value_type::type_Bool;
         Category->Value.Bool = false;
@@ -161,10 +161,10 @@ void EvaluateCategory(json_category *Category, char *Buffer, u32 *BufferSize)
     else if(Category->ValueType == enum_json_value_type::type_Number)
     {
         Category->ValueType = enum_json_value_type::type_Number;
-        Category->Value.Number = atoll(Buffer);
+        Category->Value.Number = atoll(TempBuffer);
     }
     
-    ResetBuffer(Buffer, BufferSize);
+    ResetBuffer(TempBuffer, TempBufferSize);
 }
 
 void json_object::PushJsonCategory(json_category *Category)
@@ -220,6 +220,9 @@ void json_object::Print()
             printf("%s: \n", Category.Key);
             printf("[ ");
             json_array& ArrayRef = Category.Value.JsonArray;
+            
+            if(ArrayRef.Type == type_Number)
+            {
             for(int i = 0; i < ArrayRef.Size; ++i)
             {
                 // TODO TYPE CHECK HERE
@@ -234,6 +237,23 @@ void json_object::Print()
                     printf("%.2f", Num);
                 }
             }
+            }
+            else if(ArrayRef.Type == type_String)
+            {
+                for(int i = 0; i < ArrayRef.Size; ++i)
+                {
+                    char* String = ArrayRef.Value.StringArray[i];
+                    if(i < ArrayRef.Size - 1)
+                    {
+                        printf("%s ,", String);
+                    }
+                    else
+                    {
+                        printf("%s", String);
+                    }
+                }
+            }
+            
             
             printf(" ]\n");
         }
@@ -268,6 +288,34 @@ void json_object::Print()
     }
 }
 
+enum class enum_temp_type
+{
+    type_None,
+    type_String,
+    type_Bool,
+    type_Float,
+        type_Json,
+};
+
+
+void EvaluateArrayValue(u16 Flags, enum_json_value_type *TempType, char* TempBuffer, u32 TempBufferSize)
+{
+    if((strncmp(TempBuffer, "true", TempBufferSize) == 0) || (strncmp(TempBuffer, "false", TempBufferSize) == 0))
+    {
+        *TempType = type_Bool;
+    }
+    else if(CheckFlag(Flags, enum_parser_flags::flag_String_Opened))
+    {
+        *TempType = type_String;
+    }
+    else
+    {
+        // TODO EXCLUDE WHEN HAVING A JSON
+        *TempType = type_Number;
+    }
+    
+}
+
 u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex /*= 0*/)
 {
     u32 ReadChars = 0;
@@ -277,12 +325,18 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
     char TempBuffer[256];
     memset(TempBuffer, '\0', sizeof(TempBuffer));
     
-    json_category TempCategory;
-    f32 TempFloatArray[256];
-    u8 FloatArraySize = 0;
-    bool TempBoolArray[256];
-    char TempStringArray[256];
+     enum_json_value_type TempType = type_None;
+    bool* TempBoolArray = nullptr;
+    char** TempStringArray = nullptr;
+    f32* TempFloatArray = nullptr;
+    bool bTempDataFree = false;
     
+    u8 InitialTempData = 100;
+    u32 CurrentTempDataBufferSize = 0;
+    u8 TempArraySize = 0;
+    
+    
+    json_category TempCategory;
     u32 TempBufferSize = 0;
     for(u32 Index = FirstIndex; Index < BufferSize; ++Index)
     {
@@ -327,14 +381,19 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
         }
         else if(Token == enum_json_token::token_DQuote)
         {
+            
             // We have something in the buffer. Finished the String Value
             if(TempBufferSize > 0)
             {
                 SetFlag(Flags, enum_parser_flags::flag_String_Opened, false);
                 if(TempCategory.Key)
                 {
+                    // Array Check
+                    if(!CheckFlag(Flags, enum_parser_flags::flag_Array_Opened))
+                    {
                     // Value Buffer as String.
                     TempCategory.ValueType = enum_json_value_type::type_String;
+                    }
                 }
                 else
                 {
@@ -363,18 +422,11 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
         {
             PushChar(BufferChar, TempBuffer, TempBufferSize);
             
-            
             // We are doing this all the time we find a letter or number, maybe figure out a way of set this once.FLAG?
-            if(!CheckFlag(Flags, enum_parser_flags::flag_String_Opened))
+            if(!CheckFlag(Flags, enum_parser_flags::flag_String_Opened)
+               && !CheckFlag(Flags, enum_parser_flags::flag_Array_Opened))
             {
-                if(!CheckFlag(Flags, enum_parser_flags::flag_Array_Opened))
-                {
                 TempCategory.ValueType = enum_json_value_type::type_Number;
-                }
-                else
-                {
-                    TempCategory.Value.JsonArray.Type = type_Number;
-                }
             }
             
         }
@@ -384,13 +436,6 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
             
             EvaluateCategory(&TempCategory, TempBuffer, &TempBufferSize);
             PushJsonCategory(&TempCategory);
-            
-            // TODO REVISIT
-            if(Token == enum_json_token::token_CloseBraces)
-            {
-                break; 
-            }
-            
         }
         else if(Token == enum_json_token::token_OpenSquareBracket)
         {
@@ -402,23 +447,114 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
             SetFlag(Flags, enum_parser_flags::flag_Array_Opened, false);
             
             // PUSH THE LAST VALUE
-            TempFloatArray[FloatArraySize++] = atoll(TempBuffer);
-            ResetBuffer(TempBuffer, &TempBufferSize);
             
+                EvaluateArrayValue(Flags, &TempType, TempBuffer, TempBufferSize);
+                switch(TempType)
+                {
+                    case enum_temp_type::type_Float:
+                    {
+                        if((TempArraySize + 1) > (CurrentTempDataBufferSize))
+                        {
+                            CurrentTempDataBufferSize += InitialTempData;
+                            TempFloatArray = (f32*)realloc(TempFloatArray, (CurrentTempDataBufferSize) * sizeof(f32));
+                        }
+                        
+                        TempFloatArray[TempArraySize++] = atoll(TempBuffer);
+                    }
+                    break;
+                    
+                    case enum_temp_type::type_Bool:
+                    {
+                        if((TempArraySize + 1) > (CurrentTempDataBufferSize))
+                        {
+                            CurrentTempDataBufferSize += InitialTempData;
+                            TempBoolArray  = (bool*)realloc(TempBoolArray, (CurrentTempDataBufferSize) * sizeof(bool));
+                        }
+                        
+                        bool bValueToAdd = !(strncmp(TempBuffer, "false", TempBufferSize) == 0);
+                        TempBoolArray[TempArraySize++] = bValueToAdd;
+                    }
+                    break;
+                    
+                    case enum_temp_type::type_String:
+                    {
+                        if((TempArraySize + 1) > (CurrentTempDataBufferSize))
+                        {
+                            CurrentTempDataBufferSize += InitialTempData;
+                            TempStringArray  = (char**)realloc(TempStringArray, (CurrentTempDataBufferSize) * sizeof(char*));
+                        }
+                    
+                    char* String = (char*)malloc(sizeof(char) * TempBufferSize + 1);
+                    memset(String, '\0', TempBufferSize + 1);
+                    memcpy(TempStringArray[TempArraySize++], TempBuffer, TempBufferSize);
+                    }
+                    break;
+                    
+                    case enum_temp_type::type_Json:
+                    {
+                        // TODO IMPLEMENT JSON AS ARRAY
+                    }
+                    break;
+                    
+                    default: break;
+                }
+                
+                ResetBuffer(TempBuffer, &TempBufferSize);
             
-            // TODO CHECK THE TYPE AND COPY ARRAY ACCORDINGLY
             json_array& ArrayRef = TempCategory.Value.JsonArray;
-            ArrayRef.Size = FloatArraySize;
-            float* ArrayAsFloats = (float*)malloc(sizeof(float) * ArrayRef.Size);
-            for(u8 Index = 0; Index < ArrayRef.Size; ++Index)
+            ArrayRef.Size = TempArraySize;
+            switch(TempType)
             {
-                ArrayAsFloats[Index] = TempFloatArray[Index];
+                case enum_temp_type::type_Float:
+                {
+                    u32 Bytes = sizeof(f32) * ArrayRef.Size;
+                    f32* AsNumbers = (f32*)malloc(Bytes);
+                    memcpy(AsNumbers, TempFloatArray, Bytes);
+                    ArrayRef.Value.NumberArray = AsNumbers;
+                }
+                break;
+                
+                case enum_temp_type::type_Bool:
+                {
+                    u32 Bytes = sizeof(bool) * ArrayRef.Size;
+                    bool* AsBools = (bool*)malloc(Bytes);
+                    memcpy(AsBools, TempBoolArray, Bytes);
+                    ArrayRef.Value.BoolArray = AsBools;
+                }
+                break;
+                
+                case enum_temp_type::type_String:
+                {
+                    u32 Bytes = sizeof(char*) * ArrayRef.Size;
+                    char** AsString = (char**)malloc(Bytes);
+                    
+                    for(int i = 0; i < ArrayRef.Size; ++i)
+                    {
+                        char* String = TempStringArray[i];
+                        u32 StringToCpySize = strlen(String) + 1;
+                        char* DestString = (char*)malloc(sizeof(char)* StringToCpySize);
+                        memcpy(DestString, String, StringToCpySize);
+                        
+                        AsString[i] = DestString;
+                    }
+                    
+                    memcpy(AsString, TempStringArray, Bytes);
+                    ArrayRef.Value.StringArray = AsString;
+                }
+                break;
+                
+                case enum_temp_type::type_Json:
+                {
+                    // TODO IMPLEMENT JSON AS ARRAY
+                }
+                break;
+                
+                default: break;
             }
             
-            ArrayRef.Value.NumberArray = ArrayAsFloats;
             
             // Reseting the ArraySize to reuse it.
-            FloatArraySize = 0;
+             TempArraySize = 0;
             
         }
         else if(Token == enum_json_token::token_Coma)
@@ -426,7 +562,59 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
             // we are reading through the Array
             if(CheckFlag(Flags, enum_parser_flags::flag_Array_Opened))
             {
-                TempFloatArray[FloatArraySize++] = atoll(TempBuffer);
+                EvaluateArrayValue(Flags, &TempType, TempBuffer, TempBufferSize);
+                
+                switch(TempType)
+                {
+                    case enum_temp_type::type_Float:
+                    {
+                        if((TempArraySize + 1) > (CurrentTempDataBufferSize))
+                        {
+                            CurrentTempDataBufferSize += InitialTempData;
+                            TempFloatArray = (f32*)realloc(TempFloatArray, (CurrentTempDataBufferSize) * sizeof(f32));
+                        }
+                        
+                        TempFloatArray[TempArraySize++] = atoll(TempBuffer);
+                    }
+                    break;
+                    
+                    case enum_temp_type::type_Bool:
+                    {
+                        if((TempArraySize + 1) > (CurrentTempDataBufferSize))
+                        {
+                        CurrentTempDataBufferSize += InitialTempData;
+                            TempBoolArray  = (bool*)realloc(TempBoolArray, (CurrentTempDataBufferSize) * sizeof(bool));
+                        }
+                        
+                        bool bValueToAdd = !(strncmp(TempBuffer, "false", TempBufferSize) == 0);
+                            TempBoolArray[TempArraySize++] = bValueToAdd;
+                    }
+                    break;
+                    
+                    case enum_temp_type::type_String:
+                    {
+                        if((TempArraySize + 1) > (CurrentTempDataBufferSize))
+                        {
+                            CurrentTempDataBufferSize += InitialTempData;
+                            TempStringArray  = (char**)realloc(TempStringArray, (CurrentTempDataBufferSize) * sizeof(char*));
+                        }
+                        
+                        char* NewString = (char*)malloc(sizeof(char) * (TempBufferSize + 1));
+                        memset(NewString, '\0', TempBufferSize + 1);
+                        memcpy(NewString, TempBuffer, TempBufferSize);
+                        TempStringArray[TempArraySize++] = NewString;
+                    }
+                    break;
+                    
+                    case enum_temp_type::type_Json:
+                    {
+                        // TODO IMPLEMENT JSON AS ARRAY
+                    }
+                    break;
+                    
+                    default: break;
+                }
+                
                 ResetBuffer(TempBuffer, &TempBufferSize);
             }
         }

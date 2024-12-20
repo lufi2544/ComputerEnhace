@@ -250,10 +250,17 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
 {
     u32 ReadChars = 0;
     u16 Flags = 0;
+    
+    // TEMP DATA
     char TempBuffer[256];
     memset(TempBuffer, '\0', sizeof(TempBuffer));
     
     json_category TempCategory;
+    f32 TempFloatArray[256];
+    u8 FloatArraySize = 0;
+    bool TempBoolArray[256];
+    char TempStringArray[256];
+    
     u32 TempBufferSize = 0;
     for(u32 Index = FirstIndex; Index < BufferSize; ++Index)
     {
@@ -276,6 +283,7 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
             }
             else
             {
+                // Adding another Json as a subcategory
                 if(TempCategory.Key)
                 {
                     TempCategory.ValueType = enum_json_value_type::type_Json;
@@ -297,7 +305,7 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
         }
         else if(Token == enum_json_token::token_DQuote)
         {
-            // We have something in the buffer.
+            // We have something in the buffer. Finished the String Value
             if(TempBufferSize > 0)
             {
                 SetFlag(Flags, enum_parser_flags::flag_String_Opened, false);
@@ -320,6 +328,7 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
             }
             else
             {
+                // Start to read a String value
                 SetFlag(Flags, enum_parser_flags::flag_String_Opened, true);
             }
         }
@@ -331,12 +340,13 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
         else if(Token == enum_json_token::token_LetterOrNumber)
         {
             PushChar(BufferChar, TempBuffer, TempBufferSize);
-            if(!CheckFlag(Flags, enum_parser_flags::flag_String_Opened))
+            
+            if(!CheckFlag(Flags, enum_parser_flags::flag_Array_Opened) && !CheckFlag(Flags, enum_parser_flags::flag_String_Opened))
             {
                 TempCategory.ValueType = enum_json_value_type::type_Number;
             }
         }
-        else if(Token == enum_json_token::token_Coma || Token == enum_json_token::token_CloseBraces)
+        else if((!CheckFlag(Flags, enum_parser_flags::flag_Array_Opened)) && (Token == enum_json_token::token_Coma || Token == enum_json_token::token_CloseBraces))
         {
             // CHANGING THE CATEGORY
             
@@ -349,6 +359,26 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
                 break; 
             }
             
+        }
+        else if(Token == enum_json_token::token_OpenSquareBracket)
+        {
+            SetFlag(Flags, enum_parser_flags::flag_Array_Opened, true);
+            TempCategory.ValueType = enum_json_value_type::type_Array;
+            
+        }
+        else if(Token == enum_json_token::token_CloseSquareBracket)
+        {
+            SetFlag(Flags, enum_parser_flags::flag_Array_Opened, false);
+            TempCategory.
+        }
+        else if(Token == enum_json_token::token_Coma)
+        {
+            // we are reading through the Array
+            if(CheckFlag(Flags, enum_parser_flags::flag_Array_Opened))
+            {
+                TempFloatArray[FloatArraySize++] = atoll(TempBuffer);
+                ResetBuffer(TempBuffer, &TempBufferSize);
+            }
         }
     }
     

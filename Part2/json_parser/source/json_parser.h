@@ -28,6 +28,7 @@ enum enum_parser_flags : u16
     flag_ValueOpen = 4,
     flag_ValuePushed = 5,
     flag_String_Opened = 6,
+    flag_Array_Opened = 7,
 };
 
 
@@ -67,14 +68,31 @@ enum enum_json_value_type
     type_Bool,
     type_String,
     type_Json,
+    type_Array,
 };
 
+union json_array_value
+{
+    char** StringArray;
+    float* NumberArray;
+    bool* BoolArray;
+    struct json_object** JsonObjectArray;
+};
+
+struct json_array
+{
+    json_array_value Value;
+    u8 Size;
+};
+
+// TODO figure out a way of declaring the json_object with a type value in stead of a ptr.
 union json_value
 {
     char* String;
-    struct json_object* Json;
     float Number;
     bool Bool;
+    struct json_object* Json;
+    json_array JsonArray;
 };
 
 struct json_category
@@ -127,9 +145,8 @@ struct json_object
     void PushJsonCategory(json_category *Category);
     void Print();
     
-    json_category* Categories = nullptr;
     const char* Name = nullptr;
-    json_object* Parent = nullptr;
+    json_category* Categories = nullptr;
     s32 Size = 0;
 };
 

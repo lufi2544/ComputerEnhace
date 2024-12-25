@@ -294,16 +294,12 @@ void EvaluateArrayValue(u16 Flags, enum_json_value_type *TempType, char* TempBuf
     {
         *TempType = type_Bool;
     }
-    else if(CheckFlag(Flags, enum_parser_flags::flag_String_Opened))
-    {
-        *TempType = type_String;
-    }
     else
     {
         // TODO EXCLUDE WHEN HAVING A JSON
         *TempType = type_Number;
     }
-    
+    // String type is checked when we parse the double quote
 }
 
 u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex /*= 0*/)
@@ -360,8 +356,8 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
                 //NOTE: for now lets handle a simple category.
                 
                 //TODO: MEMORY!!! Is this needed?
-                json_object* SubJson = (json_object*)malloc(sizeof(json_object));
-                new (SubJson) json_object();
+                json_object* SubJson = new (json_object);
+                //new (SubJson) json_object();
                 
                 u32 SubJsonReadChars = SubJson->ParseBuffer(Buffer, BufferSize, Index + 1);
                 Index += SubJsonReadChars;
@@ -383,6 +379,10 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
                     {
                         // Value Buffer as String.
                         TempCategory.ValueType = enum_json_value_type::type_String;
+                    }
+                    else
+                    {
+                        TempType = enum_json_value_type::type_String;
                     }
                 }
                 else
@@ -481,7 +481,8 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
                     
                     char* String = (char*)malloc(sizeof(char) * TempBufferSize + 1);
                     memset(String, '\0', TempBufferSize + 1);
-                    memcpy(TempStringArray[TempArraySize++], TempBuffer, TempBufferSize);
+                    memcpy(String, TempBuffer, TempBufferSize);
+                    TempStringArray[TempArraySize++] = String;
                 }
                 break;
                 
@@ -600,9 +601,10 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
                         }
                         
                         char* NewString = (char*)malloc(sizeof(char) * (TempBufferSize + 1));
+                        TempStringArray[TempArraySize++] = NewString;   
+                        
                         memset(NewString, '\0', TempBufferSize + 1);
                         memcpy(NewString, TempBuffer, TempBufferSize);
-                        TempStringArray[TempArraySize++] = NewString;
                     }
                     break;
                     

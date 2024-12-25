@@ -106,17 +106,62 @@ struct json_category
     {
         if(Key)
         {
-            delete[] Key;
+            free(Key);
             Key = nullptr;
         }
         if (ValueType == type_String)
         {
-            delete[] Value.String;
+            free(Value.String);
             Value.String = nullptr;
         }
         else if(ValueType == type_Json)
         {
             delete Value.Json;
+        }
+        else if(ValueType == type_Array)
+        {
+            json_array& ArrayRef = Value.JsonArray;
+            switch (ArrayRef.Type)
+            {
+            case enum_json_value_type::type_String :
+            {
+                for(int i = 0; i < ArrayRef.Size; ++i)
+                {
+                    char* String = ArrayRef.Value.StringArray[i];
+                    free(String);
+                }
+
+                 free(ArrayRef.Value.StringArray);
+            }
+            break;
+
+            case enum_json_value_type::type_Number :
+            {
+                free(ArrayRef.Value.NumberArray);
+            }
+            break;
+
+            case enum_json_value_type::type_Bool :
+            {
+                 free(ArrayRef.Value.BoolArray);
+            }
+            break;
+
+            case enum_json_value_type::type_Json :
+            {
+                for(int i = 0; i < ArrayRef.Size; ++i)
+                {
+                    json_object* Json = ArrayRef.Value.JsonObjectArray[i];
+                    delete(Json);
+                }
+
+                delete (ArrayRef.Value.JsonObjectArray);
+            }
+            break;
+
+            default:
+                break;
+            }
         }
     }
 };

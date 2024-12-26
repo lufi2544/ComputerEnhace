@@ -221,7 +221,10 @@ void json_object::Print()
             printf("[ ");
             json_array& ArrayRef = Category.Value.JsonArray;
             
-            if(ArrayRef.Type == type_Number)
+
+            switch (ArrayRef.Type)
+            {
+            case type_Number:
             {
                 for(int i = 0; i < ArrayRef.Size; ++i)
                 {
@@ -238,7 +241,9 @@ void json_object::Print()
                     }
                 }
             }
-            else if(ArrayRef.Type == type_String)
+            break;
+
+            case type_String:
             {
                 for(int i = 0; i < ArrayRef.Size; ++i)
                 {
@@ -253,8 +258,33 @@ void json_object::Print()
                     }
                 }
             }
+            break;
+
+            case type_Bool:
+            {
+                for (int i = 0; i < ArrayRef.Size; ++i)
+                {
+                    bool Value = ArrayRef.Value.BoolArray[i];
+                    const char* BoolValue = (Value == true) ? "true" : "false";
+                    if (i == ArrayRef.Size - 1)
+                    {
+                        printf("%s", BoolValue); 
+                    }
+                    else 
+                    {
+                        printf("%s, ", BoolValue);
+                    }
+                
+                }
+
+
+            }
+            break;
             
-            
+            default:
+                break;
+            }
+                     
             printf(" ]\n");
         }
         else
@@ -302,6 +332,13 @@ void EvaluateArrayValue(u16 Flags, enum_json_value_type *TempType, char* TempBuf
     // String type is checked when we parse the double quote
 }
 
+
+struct TempArrayContext
+{
+    u32 Size = 0;
+    json_array_value Array;
+};
+
 u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex /*= 0*/)
 {
     u32 ReadChars = 0;
@@ -312,9 +349,11 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
     memset(TempBuffer, '\0', sizeof(TempBuffer));
     
     enum_json_value_type TempType = type_None;
-    bool* TempBoolArray = nullptr;
-    char** TempStringArray = nullptr;
-    f32* TempFloatArray = nullptr;
+
+    TempArrayContext ArrayBoolContext;
+    TempArrayContext ArrayStringContext;
+    TempArrayContext ArrayNumberContxt;
+    TempArrayContext ArrayJsonContext;
     bool bTempDataFree = false;
     
     u8 InitialTempData = 100;
@@ -448,41 +487,63 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
             {
                 case enum_json_value_type::type_Number:
                 {
-                    if((TempArraySize + 1) > (CurrentTempDataBufferSize))
+                    f32* Array = ArrayNumberContxt.Array.NumberArray;
+                    u32& ArraySize = ArrayNumberContxt.Size;
+                    if((TempArraySize + 1) > (ArraySize))
                     {
-                        CurrentTempDataBufferSize += InitialTempData;
-                        TempFloatArray = (f32*)realloc(TempFloatArray, (CurrentTempDataBufferSize) * sizeof(f32));
+                        if (ArrayNumberContxt.Size == 0)
+                        {
+                            ArrayNumberContxt.Array.NumberArray = nullptr;
+                        }
+                        
+                        ArraySize += InitialTempData;
+                        Array = (f32*)realloc(Array, (ArraySize) * sizeof(f32));
+                        ArrayNumberContxt.Array.NumberArray = Array;
                     }
                     
-                    TempFloatArray[TempArraySize++] = atoll(TempBuffer);
+                    Array[TempArraySize++] = atoll(TempBuffer);
                 }
                 break;
                 
                 case enum_json_value_type::type_Bool:
                 {
-                    if((TempArraySize + 1) > (CurrentTempDataBufferSize))
+                    bool* Array = ArrayBoolContext.Array.BoolArray;
+                    if((TempArraySize + 1) > (ArrayBoolContext.Size))
                     {
-                        CurrentTempDataBufferSize += InitialTempData;
-                        TempBoolArray  = (bool*)realloc(TempBoolArray, (CurrentTempDataBufferSize) * sizeof(bool));
+                        if (ArrayBoolContext.Size == 0)
+                        {
+                            ArrayBoolContext.Array.BoolArray = nullptr;
+                        }
+                        
+                        ArrayBoolContext.Size += InitialTempData;
+                        Array  = (bool*)realloc(Array, (ArrayBoolContext.Size) * sizeof(bool));
+                        ArrayBoolContext.Array.BoolArray = Array;
                     }
                     
                     bool bValueToAdd = !(strncmp(TempBuffer, "false", TempBufferSize) == 0);
-                    TempBoolArray[TempArraySize++] = bValueToAdd;
+                    Array[TempArraySize++] = bValueToAdd;
                 }
                 break;
                 
                 case enum_json_value_type::type_String:
                 {
-                    if((TempArraySize + 1) > (CurrentTempDataBufferSize))
+                    char** Array = ArrayStringContext.Array.StringArray;
+                    if((TempArraySize + 1) > (ArrayStringContext.Size))
                     {
-                        CurrentTempDataBufferSize += InitialTempData;
-                        TempStringArray  = (char**)realloc(TempStringArray, (CurrentTempDataBufferSize) * sizeof(char*));
+                        if (ArrayStringContext.Size == 0)
+                        {
+                            ArrayStringContext.Array.StringArray = nullptr;
+                        }
+                        
+                        ArrayStringContext.Size += InitialTempData;
+                        Array  = (char**)realloc(Array, (ArrayStringContext.Size) * sizeof(char*));
+                        ArrayStringContext.Array.StringArray = Array;
                     }
                     
                     char* String = (char*)malloc(sizeof(char) * TempBufferSize + 1);
                     memset(String, '\0', TempBufferSize + 1);
                     memcpy(String, TempBuffer, TempBufferSize);
-                    TempStringArray[TempArraySize++] = String;
+                    Array[TempArraySize++] = String;
                 }
                 break;
                 
@@ -500,13 +561,14 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
             json_array& ArrayRef = TempCategory.Value.JsonArray;
             ArrayRef.Size = TempArraySize;
             ArrayRef.Type = TempType;
+
             switch(ArrayRef.Type)
             {
                 case enum_json_value_type::type_Number:
                 {
                     u32 Bytes = sizeof(f32) * ArrayRef.Size;
                     f32* AsNumbers = (f32*)malloc(Bytes);
-                    memcpy(AsNumbers, TempFloatArray, Bytes);
+                    memcpy(AsNumbers, ArrayNumberContxt.Array.NumberArray, Bytes);
                     ArrayRef.Value.NumberArray = AsNumbers;
                 }
                 break;
@@ -515,7 +577,7 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
                 {
                     u32 Bytes = sizeof(bool) * ArrayRef.Size;
                     bool* AsBools = (bool*)malloc(Bytes);
-                    memcpy(AsBools, TempBoolArray, Bytes);
+                    memcpy(AsBools, ArrayBoolContext.Array.BoolArray, Bytes);
                     ArrayRef.Value.BoolArray = AsBools;
                 }
                 break;
@@ -527,7 +589,7 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
                     
                     for(int i = 0; i < ArrayRef.Size; ++i)
                     {
-                        char* String = TempStringArray[i];
+                        char* String = ArrayStringContext.Array.StringArray[i];
                         u32 StringToCpySize = strlen(String) + 1;
                         char* DestString = (char*)malloc(sizeof(char)* StringToCpySize);
                         memcpy(DestString, String, StringToCpySize);
@@ -535,7 +597,7 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
                         AsString[i] = DestString;
                     }
                     
-                    memcpy(AsString, TempStringArray, Bytes);
+                    memcpy(AsString, ArrayStringContext.Array.StringArray, Bytes);
                     ArrayRef.Value.StringArray = AsString;
                 }
                 break;
@@ -567,44 +629,62 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
                 
                 switch(TempType)
                 {
+                    // TODO REFACTOR!!!!!
                     case enum_json_value_type::type_Number:
                     {
-                        if((TempArraySize + 1) > (CurrentTempDataBufferSize))
+                        f32* Array = ArrayNumberContxt.Array.NumberArray;
+                        u32& ArraySize = ArrayNumberContxt.Size;
+                        if((TempArraySize + 1) > (ArraySize))
                         {
-                            CurrentTempDataBufferSize += InitialTempData;
-                            TempFloatArray = (f32*)realloc(TempFloatArray, (CurrentTempDataBufferSize) * sizeof(f32));
+                            ArraySize += InitialTempData;
+                            Array = (f32*)realloc(Array, (ArraySize) * sizeof(f32));
+                            ArrayNumberContxt.Array.NumberArray = Array;
                         }
                         
-                        TempFloatArray[TempArraySize++] = atoll(TempBuffer);
+                        Array[TempArraySize++] = atoll(TempBuffer);
                     }
                     break;
                     
                     case type_Bool:
                     {
-                        if((TempArraySize + 1) > (CurrentTempDataBufferSize))
+                       
+                        if((TempArraySize + 1) > (ArrayBoolContext.Size))
                         {
-                            CurrentTempDataBufferSize += InitialTempData;
-                            TempBoolArray  = (bool*)realloc(TempBoolArray, (CurrentTempDataBufferSize) * sizeof(bool));
+                            if(ArrayBoolContext.Size == 0)
+                            {
+                                ArrayBoolContext.Array.BoolArray = nullptr;
+                            }
+
+                            ArrayBoolContext.Size += InitialTempData;
+                            ArrayBoolContext.Array.BoolArray = (bool*)realloc(ArrayBoolContext.Array.BoolArray, (ArrayBoolContext.Size) * sizeof(bool));
                         }
                         
+                        bool* BoolArray = ArrayBoolContext.Array.BoolArray;
                         bool bValueToAdd = !(strncmp(TempBuffer, "false", TempBufferSize) == 0);
-                        TempBoolArray[TempArraySize++] = bValueToAdd;
+                        BoolArray[TempArraySize++] = bValueToAdd;
                     }
                     break;
                     
                     case type_String:
                     {
-                        if((TempArraySize + 1) > (CurrentTempDataBufferSize))
+                        
+                        if((TempArraySize + 1) > (ArrayStringContext.Size))
                         {
-                            CurrentTempDataBufferSize += InitialTempData;
-                            TempStringArray  = (char**)realloc(TempStringArray, (CurrentTempDataBufferSize) * sizeof(char*));
+                            if (ArrayStringContext.Size == 0)
+                            {
+                                ArrayStringContext.Array.StringArray = nullptr;
+                            }
+                            
+                            ArrayStringContext.Size += InitialTempData;
+                            ArrayStringContext.Array.StringArray  = (char**)realloc(ArrayStringContext.Array.StringArray, (ArrayStringContext.Size) * sizeof(char*));
                         }
+
+                        char** Array = ArrayStringContext.Array.StringArray;
                         
-                        char* NewString = (char*)malloc(sizeof(char) * (TempBufferSize + 1));
-                        TempStringArray[TempArraySize++] = NewString;   
-                        
-                        memset(NewString, '\0', TempBufferSize + 1);
-                        memcpy(NewString, TempBuffer, TempBufferSize);
+                        char* String = (char*)malloc(sizeof(char) * TempBufferSize + 1);
+                        memset(String, '\0', TempBufferSize + 1);
+                        memcpy(String, TempBuffer, TempBufferSize);
+                        Array[TempArraySize++] = String;
                     }
                     break;
                     

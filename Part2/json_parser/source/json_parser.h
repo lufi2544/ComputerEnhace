@@ -123,47 +123,65 @@ struct json_category
             json_array& ArrayRef = Value.JsonArray;
             switch (ArrayRef.Type)
             {
-            case enum_json_value_type::type_String :
-            {
-                for(int i = 0; i < ArrayRef.Size; ++i)
+                case enum_json_value_type::type_String :
                 {
-                    char* String = ArrayRef.Value.StringArray[i];
-                    free(String);
+                    for(int i = 0; i < ArrayRef.Size; ++i)
+                    {
+                        char* String = ArrayRef.Value.StringArray[i];
+                        free(String);
+                    }
+                    
+                    free(ArrayRef.Value.StringArray);
                 }
-
-                 free(ArrayRef.Value.StringArray);
-            }
-            break;
-
-            case enum_json_value_type::type_Number :
-            {
-                free(ArrayRef.Value.NumberArray);
-            }
-            break;
-
-            case enum_json_value_type::type_Bool :
-            {
-                 free(ArrayRef.Value.BoolArray);
-            }
-            break;
-
-            case enum_json_value_type::type_Json :
-            {
-                for(int i = 0; i < ArrayRef.Size; ++i)
+                break;
+                
+                case enum_json_value_type::type_Number :
                 {
-                    json_object* Json = ArrayRef.Value.JsonObjectArray[i];
-                    delete(Json);
+                    free(ArrayRef.Value.NumberArray);
                 }
-
-                delete (ArrayRef.Value.JsonObjectArray);
-            }
-            break;
-
-            default:
+                break;
+                
+                case enum_json_value_type::type_Bool :
+                {
+                    free(ArrayRef.Value.BoolArray);
+                }
+                break;
+                
+                case enum_json_value_type::type_Json :
+                {
+                    for(int i = 0; i < ArrayRef.Size; ++i)
+                    {
+                        json_object* Json = ArrayRef.Value.JsonObjectArray[i];
+                        delete(Json);
+                    }
+                    
+                    delete (ArrayRef.Value.JsonObjectArray);
+                }
+                break;
+                
+                default:
                 break;
             }
         }
     }
+};
+
+
+struct TempArrayContext
+{
+    u32 Size = 0;
+    json_array_value Array;
+};
+
+struct temp_array_data
+{
+    TempArrayContext ArrayBoolContext;
+    TempArrayContext ArrayStringContext;
+    TempArrayContext ArrayNumberContxt;
+    TempArrayContext ArrayJsonContext;
+
+    enum_json_value_type TempType = type_None;
+    u32 Size = 0;
 };
 
 // Maybe making a different struct for this object, so we can have a handler and a json 
@@ -191,6 +209,12 @@ struct json_object
     void PushJsonCategory(json_category *Category);
     void Print();
     
+    
+    private:
+    void PushArrayValue(temp_array_data* ArrayData, u16 Flags, char* TempBuffer, u32* TempBufferSize);
+    void PushArray(json_category* TempCategory, temp_array_data* ArrayData);
+    
+    public:
     const char* Name = nullptr;
     json_category* Categories = nullptr;
     s32 Size = 0;

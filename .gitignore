@@ -33,3 +33,5 @@
 *.app
 .DS_Store
 *.DS_Store
+Part2/.DS_Store
+Part2/json_parser/.DS_Store

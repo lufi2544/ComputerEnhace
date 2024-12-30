@@ -203,7 +203,11 @@ json_object::json_object(const char* FileName)
 
 void json_object::Print()
 {
-    printf("Printing Json: %s \n", Name);
+    if(Name != nullptr)
+    {
+        printf("Printing Json: %s \n", Name);
+    }
+
     for(int i = 0; i < Size; ++i)
     {
         json_category Category = Categories[i];
@@ -371,6 +375,7 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
             {
                 // Opening the Json
                 SetFlag(Flags, enum_parser_flags::flag_Open, true);
+                auto a = sizeof(json_object);
             }
             else
             {
@@ -385,8 +390,9 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
                 //NOTE: for now lets handle a simple category.
                 
                 //TODO: MEMORY!!! Is this needed?
-                json_object* SubJson = new (json_object);
+                json_object* SubJson = new json_object();
                 //new (SubJson) json_object();
+
                 
                 u32 SubJsonReadChars = SubJson->ParseBuffer(Buffer, BufferSize, Index + 1);
                 Index += SubJsonReadChars;
@@ -453,8 +459,16 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
         {
             // CHANGING THE CATEGORY
             
+            printf("Close: %s \n", TempBuffer);
+
             EvaluateCategory(&TempCategory, TempBuffer, &TempBufferSize);
             PushJsonCategory(&TempCategory);
+
+            if (Token == token_CloseBraces)
+            {
+                // Always break if we have the close braces
+                break;
+            }
         }
         else if(Token == enum_json_token::token_OpenSquareBracket)
         {

@@ -1,0 +1,5 @@
+JSON PARSER:
+
+1. Add array suppor for negative floats and floats in general.
+2. Fix up the Harvesine Fourmula project.
+2. Test out with little jsons.

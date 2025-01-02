@@ -483,8 +483,7 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
             PushChar(BufferChar, TempBuffer, TempBufferSize);
             
             // We are doing this all the time we find a letter or number, maybe figure out a way of set this once.FLAG?
-            if(CheckFlag(Flags, enum_parser_flags::flag_String_Opened)
-               && !CheckFlag(Flags, enum_parser_flags::flag_Array_Opened))
+            if(TempCategory.ValueType == type_None && !CheckFlag(Flags, enum_parser_flags::flag_Array_Opened) && (!CheckFlag(Flags, enum_parser_flags::flag_String_Opened)))
             {
                 TempCategory.ValueType = enum_json_value_type::type_Number;
             }

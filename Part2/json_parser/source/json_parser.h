@@ -180,7 +180,7 @@ struct temp_array_data
     TempArrayContext ArrayNumberContxt;
     TempArrayContext ArrayJsonContext;
 
-    enum_json_value_type TempType = type_None;
+    enum_json_value_type Type = type_None;
     u32 Size = 0;
 };
 

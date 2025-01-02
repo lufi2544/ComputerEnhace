@@ -105,7 +105,6 @@ char* MakeBufferCopy(char *Buffer, u32 BufferSize)
     return result;
 }
 
-
 json_category MakeJsonCategory(category_context *CategoryContext, json_value CategoryValue, enum_json_value_type Type)
 {
     json_category result;
@@ -226,16 +225,16 @@ void json_object::Print()
             json_array& ArrayRef = Category.Value.JsonArray;
             
             
-            switch (ArrayRef.Type)
+            for(int ArrayIndex = 0; ArrayIndex < ArrayRef.Size; ArrayIndex++)
             {
-                case type_Number:
+                switch (ArrayRef.Type)
                 {
-                    for(int i = 0; i < ArrayRef.Size; ++i)
+                    case type_Number:
                     {
                         // TODO TYPE CHECK HERE
-                        float Num = ArrayRef.Value.NumberArray[i];
-                        
-                        if(i < ArrayRef.Size - 1)
+                        float Num = ArrayRef.Value.NumberArray[ArrayIndex];
+
+                        if(ArrayIndex < ArrayRef.Size - 1)
                         {
                             printf("%.2f , ", Num);
                         }
@@ -243,16 +242,15 @@ void json_object::Print()
                         {
                             printf("%.2f", Num);
                         }
+
                     }
-                }
                 break;
-                
-                case type_String:
-                {
-                    for(int i = 0; i < ArrayRef.Size; ++i)
+
+                    case type_String:
                     {
-                        char* String = ArrayRef.Value.StringArray[i];
-                        if(i < ArrayRef.Size - 1)
+
+                        char* String = ArrayRef.Value.StringArray[ArrayIndex];
+                        if(ArrayIndex < ArrayRef.Size - 1)
                         {
                             printf("%s ,", String);
                         }
@@ -261,32 +259,44 @@ void json_object::Print()
                             printf("%s", String);
                         }
                     }
-                }
                 break;
-                
-                case type_Bool:
-                {
-                    for (int i = 0; i < ArrayRef.Size; ++i)
+
+                    case type_Bool:
                     {
-                        bool Value = ArrayRef.Value.BoolArray[i];
+
+                        bool Value = ArrayRef.Value.BoolArray[ArrayIndex];
                         const char* BoolValue = (Value == true) ? "true" : "false";
-                        if (i == ArrayRef.Size - 1)
+                        if (ArrayIndex == ArrayRef.Size - 1)
                         {
-                            printf("%s", BoolValue); 
+                            printf("%s", BoolValue);
                         }
-                        else 
+                        else
                         {
                             printf("%s, ", BoolValue);
                         }
-                        
+
                     }
-                    
-                    
-                }
                 break;
-                
+
+                    case type_Json:
+                    {
+                        printf("{ \n");
+                        ArrayRef.Value.JsonObjectArray[ArrayIndex]->Print();
+                        if(ArrayIndex == ArrayRef.Size - 1)
+                        {
+                            printf("} \n");
+                        }
+                        else
+                        {
+                            printf("}, \n");
+                        }
+
+                    }
+                break;
+
                 default:
-                break;
+                    break;
+                }
             }
             
             printf(" ]\n");
@@ -319,23 +329,24 @@ void json_object::Print()
             }
             printf("%s : %s \n", Category.Key, Buffer);
         }
+
     }
+
 }
 
-void EvaluateArrayValue(u16 Flags, enum_json_value_type *TempType, char* TempBuffer, u32 TempBufferSize)
+void EvaluateArrayValue(u16 Flags, enum_json_value_type *Type, char* TempBuffer, u32 TempBufferSize)
 {
     if((strncmp(TempBuffer, "true", TempBufferSize) == 0) || (strncmp(TempBuffer, "false", TempBufferSize) == 0))
     {
-        *TempType = type_Bool;
+        *Type = type_Bool;
     }
     else
     {
         // TODO EXCLUDE WHEN HAVING A JSON
-        *TempType = type_Number;
+        *Type = type_Number;
     }
     // String type is checked when we parse the double quote
 }
-
 
 u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex /*= 0*/)
 {
@@ -379,25 +390,49 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
             }
             else
             {
-                // Adding another Json as a subcategory
-                if(TempCategory.Key)
+                if(!CheckFlag(Flags, enum_parser_flags::flag_Array_Opened))
                 {
-                    TempCategory.ValueType = enum_json_value_type::type_Json;
-                }
-                
-                // Handle SubCategory.
-                // Here we have another category, so we have to create a json_object
-                //NOTE: for now lets handle a simple category.
-                
-                //TODO: MEMORY!!! Is this needed?
-                json_object* SubJson = new json_object();
-                //new (SubJson) json_object();
+                    // Adding another Json as a subcategory
+                    if(TempCategory.Key)
+                    {
+                        TempCategory.ValueType = enum_json_value_type::type_Json;
+                    }
 
-                
-                u32 SubJsonReadChars = SubJson->ParseBuffer(Buffer, BufferSize, Index + 1);
-                Index += SubJsonReadChars;
-                TempCategory.Value.Json = SubJson;
-                PushJsonCategory(&TempCategory);
+                    // Handle SubCategory.
+                    // Here we have another category, so we have to create a json_object
+                    //NOTE: for now lets handle a simple category.
+
+                    //TODO: MEMORY!!! Is this needed?
+                    json_object* SubJson = new json_object();
+                    //new (SubJson) json_object();
+
+
+                    u32 SubJsonReadChars = SubJson->ParseBuffer(Buffer, BufferSize, Index + 1);
+                    Index += SubJsonReadChars;
+                    TempCategory.Value.Json = SubJson;
+                    PushJsonCategory(&TempCategory);
+                }
+                else
+                {
+
+                    // Handle adding a json to an array of jsons.
+                    if((JsonArrayData.Size + 1) > (JsonArrayData.ArrayJsonContext.Size))
+                    {
+                        if(JsonArrayData.ArrayJsonContext.Size == 0)
+                        {
+                            JsonArrayData.ArrayJsonContext.Array.JsonObjectArray = nullptr;
+                        }
+
+                        JsonArrayData.ArrayJsonContext.Size += InitialTempData;
+                        JsonArrayData.ArrayJsonContext.Array.JsonObjectArray = (json_object**)realloc(JsonArrayData.ArrayJsonContext.Array.JsonObjectArray, JsonArrayData.ArrayJsonContext.Size * sizeof(json_object*));
+                    }
+
+                    JsonArrayData.Type = type_Json;
+                    json_object* json = new json_object();
+                    JsonArrayData.ArrayJsonContext.Array.JsonObjectArray[JsonArrayData.Size++] = json;
+                    u32 SubJsonReadChars = json->ParseBuffer(Buffer, BufferSize, Index + 1);
+                    Index += SubJsonReadChars;
+                }
             }
         }
         else if(Token == enum_json_token::token_DQuote)
@@ -417,7 +452,7 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
                     }
                     else
                     {
-                        JsonArrayData.TempType = enum_json_value_type::type_String;
+                        JsonArrayData.Type = enum_json_value_type::type_String;
                     }
                 }
                 else
@@ -458,9 +493,6 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
         else if((!CheckFlag(Flags, enum_parser_flags::flag_Array_Opened)) && (Token == enum_json_token::token_Coma || Token == enum_json_token::token_CloseBraces))
         {
             // CHANGING THE CATEGORY
-            
-            printf("Close: %s \n", TempBuffer);
-
             EvaluateCategory(&TempCategory, TempBuffer, &TempBufferSize);
             PushJsonCategory(&TempCategory);
 
@@ -502,12 +534,12 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
 void json_object::PushArrayValue(temp_array_data* ArrayData, u16 Flags, char* TempBuffer, u32* TempBufferSize)
 {
     u8 InitialTempData = 100;
-    if (ArrayData->TempType == type_None)
+    if (ArrayData->Type == type_None)
     {
-        EvaluateArrayValue(Flags, &ArrayData->TempType, TempBuffer, *TempBufferSize);
+        EvaluateArrayValue(Flags, &ArrayData->Type, TempBuffer, *TempBufferSize);
     }
     
-    switch(ArrayData->TempType)
+    switch(ArrayData->Type)
     {
         case enum_json_value_type::type_Number:
         {
@@ -563,7 +595,7 @@ void json_object::PushArrayValue(temp_array_data* ArrayData, u16 Flags, char* Te
                 ArrayData->ArrayStringContext.Array.StringArray  = (char**)realloc(ArrayData->ArrayStringContext.Array.StringArray, (ArrayData->ArrayStringContext.Size) * sizeof(char*));
             }
             
-            char** Array =ArrayData->ArrayStringContext.Array.StringArray;
+            char** Array = ArrayData->ArrayStringContext.Array.StringArray;
             
             char* String = (char*)malloc(sizeof(char) * (*TempBufferSize) + 1);
             memset(String, '\0', *TempBufferSize + 1);
@@ -574,7 +606,7 @@ void json_object::PushArrayValue(temp_array_data* ArrayData, u16 Flags, char* Te
         
         case type_Json:
         {
-            // TODO IMPLEMENT JSON AS ARRAY
+
         }
         break;
         
@@ -589,7 +621,7 @@ void json_object::PushArray(json_category* TempCategory, temp_array_data* ArrayD
 {
     json_array& ArrayRef = TempCategory->Value.JsonArray;
     ArrayRef.Size = ArrayData->Size;
-    ArrayRef.Type = ArrayData->TempType;
+    ArrayRef.Type = ArrayData->Type;
     
     switch(ArrayRef.Type)
     {
@@ -601,7 +633,7 @@ void json_object::PushArray(json_category* TempCategory, temp_array_data* ArrayD
             ArrayRef.Value.NumberArray = AsNumbers;
         }
         break;
-        
+
         case enum_json_value_type::type_Bool:
         {
             u32 Bytes = sizeof(bool) * ArrayRef.Size;
@@ -633,7 +665,8 @@ void json_object::PushArray(json_category* TempCategory, temp_array_data* ArrayD
         
         case enum_json_value_type::type_Json:
         {
-            // TODO IMPLEMENT JSON AS ARRAY
+            ArrayRef.Value.JsonObjectArray = ArrayData->ArrayJsonContext.Array.JsonObjectArray;
+            ArrayData->ArrayJsonContext.Array.JsonObjectArray = nullptr;
         }
         break;
         

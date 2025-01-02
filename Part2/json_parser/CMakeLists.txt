@@ -17,7 +17,8 @@ endif()
 
 # Use file(GLOB ...) to include all .cpp files in the source directory
 file(GLOB_RECURSE SOURCES
-    "source/*.cpp"
+    "source/*.cpp",
+    "source/*.h"
 )
 
 # Add the executable with all gathered source files

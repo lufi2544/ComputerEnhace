@@ -211,12 +211,13 @@ int mainProfiling(int ArgsCount,char** Args)
 		Sum += SumCoeff*HaversineDistance;
 		
 		const char* JSONSep = PairIndex == NumberOfPairs - 1 ? "\n" : " ,\n";
-		fprintf(Json, "    {\"x0\":%.16f, \"y0\":%.16f, \"x1\"%.16f, \"y1\":%.16f}%s", X0, Y0, X1, Y1, JSONSep);
+		fprintf(Json, "    {\"x0\":%.16f, \"y0\":%.16f, \"x1\":%.16f, \"y1\":%.16f}%s", X0, Y0, X1, Y1, JSONSep);
         
         fwrite(&HaversineDistance, sizeof(HaversineDistance), 1, Data);
 		
 		// TODO The file with the Harvesine raw data in bytes.
     }
+    fprintf(Json, "] \n");
 	fprintf(Json, "}");
 	fclose(Json);
     

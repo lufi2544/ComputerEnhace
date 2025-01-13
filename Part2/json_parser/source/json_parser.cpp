@@ -1,5 +1,6 @@
 #include <fstream>
 #include <cstdio>
+#include <stdlib.h>
 
 #include "types.h"
 #include "json_parser.h"
@@ -42,6 +43,10 @@ enum_json_token GetToken(char Character)
     else if (Character == '"')
     {
         return enum_json_token::token_DQuote;
+    }
+    else if(Character == '-')
+    {
+        return enum_json_token::token_LetterOrNumber;
     }
     else if((Character > 64/* @ */ && Character < 91 /* [  */) 
             || (Character == 95/* _ */) 
@@ -160,7 +165,7 @@ void EvaluateCategory(json_category *Category, char *TempBuffer, u32 *TempBuffer
     else if(Category->ValueType == enum_json_value_type::type_Number)
     {
         Category->ValueType = enum_json_value_type::type_Number;
-        Category->Value.Number = atoll(TempBuffer);
+        Category->Value.Number = strtod(TempBuffer, NULL);
     }
     
     ResetBuffer(TempBuffer, TempBufferSize);
@@ -236,11 +241,11 @@ void json_object::Print()
 
                         if(ArrayIndex < ArrayRef.Size - 1)
                         {
-                            printf("%.2f , ", Num);
+                            printf("%.8f , ", Num);
                         }
                         else
                         {
-                            printf("%.2f", Num);
+                            printf("%.8f", Num);
                         }
 
                     }
@@ -313,7 +318,7 @@ void json_object::Print()
             }
             else if(Category.ValueType == enum_json_value_type::type_Number)
             {
-                snprintf(Buffer, sizeof(Buffer), "%.2f", V.Number);
+                snprintf(Buffer, sizeof(Buffer), "%.8f", V.Number);
             }
             else if(Category.ValueType == enum_json_value_type::type_Bool)
             {

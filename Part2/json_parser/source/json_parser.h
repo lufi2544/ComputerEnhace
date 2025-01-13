@@ -17,6 +17,7 @@ enum enum_json_token
     token_Blank,
     token_LetterOrNumber,
     token_DQuote,
+    token_Minus,
 };
 
 enum enum_parser_flags : u16

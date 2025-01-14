@@ -623,6 +623,8 @@ void json_object::PushArrayValue(temp_array_data* ArrayData, u16 Flags, char* Te
 
 void json_object::PushArray(json_category* TempCategory, temp_array_data* ArrayData)
 {
+    auto a = ArrayData->Size;
+    
     json_array& ArrayRef = TempCategory->Value.JsonArray;
     ArrayRef.Size = ArrayData->Size;
     ArrayRef.Type = ArrayData->Type;

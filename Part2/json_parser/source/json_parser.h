@@ -84,7 +84,7 @@ struct json_array
 {
     json_array_value Value;
     enum_json_value_type Type;
-    u8 Size;
+     u32 Size;
 };
 
 // TODO figure out a way of declaring the json_object with a type value in stead of a ptr.

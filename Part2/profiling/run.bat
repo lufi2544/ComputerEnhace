@@ -1,2 +1,2 @@
 cd build/Debug
-./ Profiling
+ Profiling

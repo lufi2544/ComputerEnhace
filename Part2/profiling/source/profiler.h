@@ -4,12 +4,14 @@
 #define PROFILER_H
 
 #include "types.h"
+#include "cpu_defines.h"
 
 
 struct Profiler
 {
-    Profiler(const char* ScopeNameParam)
+    Profiler(const char* ScopeNameParam, f64* ElapsedTimeParam)
         : ScopeName { ScopeNameParam }
+        , ElapsedTime { ElapsedTimeParam }
     {
         StartOSTicksTimeStmap = ReadOSTimer();
         CPUCyclesStart = ReadCPUTimer();
@@ -23,14 +25,15 @@ struct Profiler
         
         printf("%s Scope: Elapsed: Time: %llu CPUCycles: %llu \n", ScopeName, OSTicksDiff, CPUCyclesEnd - CPUCyclesStart);
         
-        f64 PassedSeconds = (f64)OSTicksDiff / (f64)GetOSTimerFreq();
-        GetCPUFrequency(PassedSeconds * 1000);
+        *ElapsedTime = ((f64)OSTicksDiff / (f64)GetOSTimerFreq()) * 1000;
+        GetCPUFrequency(*ElapsedTime);
     }
     
     
     const char* ScopeName = nullptr;
     u64 StartOSTicksTimeStmap = 0;        
     u64 CPUCyclesStart = 0;
+    f64* ElapsedTime = nullptr;
 };
 
 

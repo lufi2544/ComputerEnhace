@@ -17,8 +17,9 @@ endif()
 
 # Use file(GLOB ...) to include all .cpp files in the source directory
 file(GLOB_RECURSE SOURCES
-    "source/*.cpp",
+    "source/*.cpp"
     "source/*.h"
+	"../profiling/source/.*h"
 )
 
 # Add the executable with all gathered source files
@@ -28,4 +29,5 @@ add_executable(JsonParser ${SOURCES})
 target_include_directories(JsonParser PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/source
     ${CMAKE_CURRENT_SOURCE_DIR}/../../
+	${CMAKE_CURRENT_SOURCE_DIR}/../profiling/source
 )

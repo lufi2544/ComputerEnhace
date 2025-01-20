@@ -16,16 +16,16 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "G
 endif()
 
 # Use file(GLOB ...) to include all .cpp files in the source directory
-file(GLOB_RECURSE SOURCES
-    "source/*.cpp",
-    "source/*.h"
+file(GLOB_RECURSE SOURCES 
+ "source/*.cpp", 
+ "source/*.h"
 )
 
 # Add the executable with all gathered source files
 add_executable(Profiling ${SOURCES})
 
 # Optionally add include directories
-target_include_directories(Profiling PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/source
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../
+target_include_directories(Profiling PRIVATE 
+ ${CMAKE_CURRENT_SOURCE_DIR}/source, 
+ ${CMAKE_CURRENT_SOURCE_DIR}/../../
 )

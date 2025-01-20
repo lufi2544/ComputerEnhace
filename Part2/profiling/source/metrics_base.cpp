@@ -4,7 +4,7 @@
 #include "types.h"
 
 #ifdef METRICS1
-int main(void)
+int main(int ArgsNum, const char** Args)
 {
     u64 OSFreq = GetOSTimerFreq();
     printf("     OS Freq : %llu\n", OSFreq);

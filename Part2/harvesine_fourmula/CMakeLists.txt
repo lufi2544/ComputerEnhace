@@ -13,7 +13,10 @@ set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /DEBUG")  # In
 
 # Use file(GLOB ...) to include all .cpp files in the source and dtest directories
 file(GLOB_RECURSE SOURCES
-    "source/*.cpp")
+    "source/*.cpp",
+    "source/*.h")
+
+
 
 # Add the executable with all gathered source files
 add_executable(Harvesine ${SOURCES})# Add the executable

@@ -25,7 +25,7 @@ struct Profiler
         
         printf("%s Scope: Elapsed: Time: %llu CPUCycles: %llu \n", ScopeName, OSTicksDiff, CPUCyclesEnd - CPUCyclesStart);
         
-        *ElapsedTime = ((f64)OSTicksDiff / (f64)GetOSTimerFreq()) * 1000;
+        *ElapsedTime = ((f64)OSTicksDiff / (f64)GetOSTimerFrequency()) * 1000;
         GetCPUFrequency(*ElapsedTime);
     }
     

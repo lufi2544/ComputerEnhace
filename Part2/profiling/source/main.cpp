@@ -18,7 +18,7 @@ int main(int ArgsNum, const char** Args)
     f64 Result = 0;
     {       
         Profiler prof("Task1 Loop", &Result);
-        while(a < 100000000)
+        while(a < 1000000000)
         {
             a++;
         }

@@ -18,7 +18,7 @@ inline u64 ReadCPUTimer(void)
 
  @juanes: This are the OS Ticks in 1 second.
 */
-static u64 GetOSTimerFreq(void)
+static u64 GetOSTimerFrequency(void)
 {
     LARGE_INTEGER Freq;
     QueryPerformanceFrequency(&Freq);
@@ -42,7 +42,7 @@ static u64 ReadOSTimer(void)
 
 
 
-#elif defined (__APPLE__) // TODO MacOS
+#elif defined (__APPLE__)
 
 #include "mach/mach_time.h"
 
@@ -70,6 +70,7 @@ static u64 ReadOSTimer()
 
 #else // TODO implement Linux
 
+#error Platform not supported
 
 #endif // _WIN32
 

@@ -9,7 +9,7 @@
 
 struct Profiler
 {
-    Profiler(const char* ScopeNameParam, f64* ElapsedTimeParam)
+    Profiler(const char* ScopeNameParam, u64* ElapsedTimeParam)
         : ScopeName { ScopeNameParam }
         , ElapsedTime { ElapsedTimeParam }
     {
@@ -33,7 +33,7 @@ struct Profiler
     const char* ScopeName = nullptr;
     u64 StartOSTicksTimeStmap = 0;        
     u64 CPUCyclesStart = 0;
-    f64* ElapsedTime = nullptr;
+    u64* ElapsedTime = nullptr;
 };
 
 

@@ -74,7 +74,7 @@ static u64 ReadOSTimer()
 
 #endif // _WIN32
 
-static u64 GetCPUFrequency(u64 MilisecondsToWait)
+static u64 GetCPUFrequency(u64 MilisecondsToWait = 100)
 {
     u64 OSFreq = GetOSTimerFrequency(); // OS Ticks per second
 

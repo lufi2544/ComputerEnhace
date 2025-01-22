@@ -9,9 +9,10 @@
 
 struct Profiler
 {
-    Profiler(const char* ScopeNameParam, u64* ElapsedTimeParam)
+    Profiler(const char* ScopeNameParam, f64* ElapsedTimeParam = nullptr, bool bVerboseParam = true)
         : ScopeName { ScopeNameParam }
         , ElapsedTime { ElapsedTimeParam }
+        , bVerbose { bVerboseParam }
     {
         StartOSTicksTimeStmap = ReadOSTimer();
         CPUCyclesStart = ReadCPUTimer();
@@ -19,21 +20,31 @@ struct Profiler
     
     ~Profiler()
     {
+        
         u64 EndOSTicksTimeStamp = ReadOSTimer();
         u64 CPUCyclesEnd = ReadCPUTimer();
         u64 OSTicksDiff = EndOSTicksTimeStamp - StartOSTicksTimeStmap;
         
-        printf("%s Scope: Elapsed: Time: %llu CPUCycles: %llu \n", ScopeName, OSTicksDiff, CPUCyclesEnd - CPUCyclesStart);
+        // Compute elapsed time in milliseconds with higher precision
+        f64 ElapsedTimeMiliseconds = ((f64)OSTicksDiff / (f64)GetOSTimerFrequency()) * 1000;
         
-        *ElapsedTime = ((f64)OSTicksDiff / (f64)GetOSTimerFrequency()) * 1000;
-        GetCPUFrequency(*ElapsedTime);
+        if(ElapsedTime)
+        {
+            *ElapsedTime  = ElapsedTimeMiliseconds;                    
+        }
+        
+        if(bVerbose)
+        {            
+            printf("%s Scope: Elapsed: Time: %.8f ms, CPUCycles: %llu \n", ScopeName, ElapsedTimeMiliseconds, CPUCyclesEnd - CPUCyclesStart);   
+        }
     }
     
     
     const char* ScopeName = nullptr;
     u64 StartOSTicksTimeStmap = 0;        
     u64 CPUCyclesStart = 0;
-    u64* ElapsedTime = nullptr;
+    f64* ElapsedTime = nullptr;
+    bool bVerbose = true;
 };
 
 

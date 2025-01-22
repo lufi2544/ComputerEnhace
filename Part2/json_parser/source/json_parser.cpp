@@ -4,6 +4,7 @@
 
 #include "types.h"
 #include "json_parser.h"
+#include "profiler.h"
 
 
 /*
@@ -184,25 +185,53 @@ void json_object::PushJsonCategory(json_category *Category)
 
 json_object::json_object(const char* FileName)
 {
-    FILE* file = fopen(FileName, "rb");
-    if(!file)
+    f64 profiler_totalTime = 0;
+    f64 profiler_ParsingTime = 0;   
+    f64 profile_OpeningFile = 0;
+    f64 profiler_FileAllocation = 0;
+    f64 profiler_OtherStuff = 0;
     {
-        fprintf(stderr, "Could not open the JSON file...");
-        return;
+        u32 BufferSize = 0;
+        char* Buffer = nullptr;
+        
+        Profiler total("TOTAL PARSING", &profiler_totalTime);
+        {
+            Profiler stuff("Stuff", &profiler_OtherStuff);
+            FILE* file = nullptr;
+            {            
+                Profiler a("Opening File", &profile_OpeningFile);
+                file =  fopen(FileName, "rb");
+            }
+            
+            if(!file)
+            {
+                fprintf(stderr, "Could not open the JSON file...");
+                return;
+            }
+            
+            
+            {          
+                Profiler b("File Allocation", &profiler_FileAllocation);
+                fseek(file, 0, SEEK_END);
+                BufferSize = ftell(file);
+                rewind(file);
+                Buffer = MakeBuffer(BufferSize);
+                // Get the file size;
+                fread(Buffer, sizeof(char), BufferSize, file);
+                fclose(file);
+            }
+        }
+        
+        Name = FileName;
+        {
+            Profiler b("Parsing", &profiler_ParsingTime);
+            ParseBuffer(Buffer, BufferSize, 0);
+        }    
     }
-    
-    
-    fseek(file, 0, SEEK_END);
-    u32 Size = ftell(file);
-    rewind(file);
-    char* Buffer = MakeBuffer(Size);
-    // Get the file size;
-    fread(Buffer, sizeof(char), Size, file);
-    fclose(file);
-    
-    Name = FileName;
-    
-    ParseBuffer(Buffer, Size, 0);
+        
+    printf("PROFILER: Parsing Percentage: %.4f \n", (profiler_ParsingTime / profiler_totalTime) * 100);
+    printf("PROFILER: Allocation Percentage: %.4f \n", (profiler_FileAllocation / profiler_totalTime) * 100);
+    printf("PROFILER: Stuff Percentage: %.4f \n", (profiler_OtherStuff / profiler_totalTime) * 100);
 }
 
 void json_object::Print()

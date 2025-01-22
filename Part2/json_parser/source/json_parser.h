@@ -117,7 +117,10 @@ struct json_category
         }
         else if(ValueType == type_Json)
         {
-            delete Value.Json;
+            if(Value.Json)
+            {
+                delete Value.Json;                
+            }
         }
         else if(ValueType == type_Array)
         {

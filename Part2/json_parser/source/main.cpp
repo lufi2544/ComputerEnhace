@@ -3,13 +3,19 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 int main(int ArgsCount,char** Args)
-{
-    f64 Res = 0;
+{        
+    f64 Profiler_Parsing = 0;
+    f64 Profiler_Printing = 0;
     {
-        Profiler prof("Json Parser Global Scope", &Res);
-        json_object json("input.json");
-        json.Print();
+        Profiler a("Parsing Json", &Profiler_Parsing);
+        json_object json("input.json");   
+        {
+            Profiler b("Printing Json", &Profiler_Printing);
+            json.Print();
+        }
     }
+    
+    printf("Parsing-Printing Proportion: %.8f \n", Profiler_Printing / Profiler_Parsing);
     
     return 0;
 }

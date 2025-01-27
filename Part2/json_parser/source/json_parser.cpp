@@ -196,7 +196,7 @@ json_object::json_object(const char* FileName)
         
         Profiler total("TOTAL PARSING", &profiler_totalTime);
         {
-            Profiler stuff("Stuff", &profiler_OtherStuff);
+            Profiler stuff("Logic", &profiler_OtherStuff);
             FILE* file = nullptr;
             {            
                 Profiler a("Opening File", &profile_OpeningFile);
@@ -228,10 +228,10 @@ json_object::json_object(const char* FileName)
             ParseBuffer(Buffer, BufferSize, 0);
         }    
     }
-        
+    
     printf("PROFILER: Parsing Percentage: %.4f \n", (profiler_ParsingTime / profiler_totalTime) * 100);
     printf("PROFILER: Allocation Percentage: %.4f \n", (profiler_FileAllocation / profiler_totalTime) * 100);
-    printf("PROFILER: Stuff Percentage: %.4f \n", (profiler_OtherStuff / profiler_totalTime) * 100);
+    printf("PROFILER: Logic Percentage: %.4f \n", (profiler_OtherStuff / profiler_totalTime) * 100);
 }
 
 void json_object::Print()
@@ -240,7 +240,7 @@ void json_object::Print()
     {
         printf("Printing Json: %s \n", Name);
     }
-
+    
     for(int i = 0; i < Size; ++i)
     {
         json_category Category = Categories[i];
@@ -267,7 +267,7 @@ void json_object::Print()
                     {
                         // TODO TYPE CHECK HERE
                         float Num = ArrayRef.Value.NumberArray[ArrayIndex];
-
+                        
                         if(ArrayIndex < ArrayRef.Size - 1)
                         {
                             printf("%.8f , ", Num);
@@ -276,13 +276,13 @@ void json_object::Print()
                         {
                             printf("%.8f", Num);
                         }
-
+                        
                     }
-                break;
-
+                    break;
+                    
                     case type_String:
                     {
-
+                        
                         char* String = ArrayRef.Value.StringArray[ArrayIndex];
                         if(ArrayIndex < ArrayRef.Size - 1)
                         {
@@ -293,11 +293,11 @@ void json_object::Print()
                             printf("%s", String);
                         }
                     }
-                break;
-
+                    break;
+                    
                     case type_Bool:
                     {
-
+                        
                         bool Value = ArrayRef.Value.BoolArray[ArrayIndex];
                         const char* BoolValue = (Value == true) ? "true" : "false";
                         if (ArrayIndex == ArrayRef.Size - 1)
@@ -308,10 +308,10 @@ void json_object::Print()
                         {
                             printf("%s, ", BoolValue);
                         }
-
+                        
                     }
-                break;
-
+                    break;
+                    
                     case type_Json:
                     {
                         printf("{ \n");
@@ -324,11 +324,11 @@ void json_object::Print()
                         {
                             printf("}, \n");
                         }
-
+                        
                     }
-                break;
-
-                default:
+                    break;
+                    
+                    default:
                     break;
                 }
             }
@@ -363,9 +363,9 @@ void json_object::Print()
             }
             printf("%s : %s \n", Category.Key, Buffer);
         }
-
+        
     }
-
+    
 }
 
 void EvaluateArrayValue(u16 Flags, enum_json_value_type *Type, char* TempBuffer, u32 TempBufferSize)
@@ -430,16 +430,16 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
                     {
                         TempCategory.ValueType = enum_json_value_type::type_Json;
                     }
-
+                    
                     // Handle SubCategory.
                     // Here we have another category, so we have to create a json_object
                     //NOTE: for now lets handle a simple category.
-
+                    
                     //TODO: MEMORY!!! Is this needed?
                     json_object* SubJson = new json_object();
                     //new (SubJson) json_object();
-
-
+                    
+                    
                     u32 SubJsonReadChars = SubJson->ParseBuffer(Buffer, BufferSize, Index + 1);
                     Index += SubJsonReadChars;
                     TempCategory.Value.Json = SubJson;
@@ -447,7 +447,7 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
                 }
                 else
                 {
-
+                    
                     // Handle adding a json to an array of jsons.
                     if((JsonArrayData.Size + 1) > (JsonArrayData.ArrayJsonContext.Size))
                     {
@@ -455,11 +455,11 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
                         {
                             JsonArrayData.ArrayJsonContext.Array.JsonObjectArray = nullptr;
                         }
-
+                        
                         JsonArrayData.ArrayJsonContext.Size += InitialTempData;
                         JsonArrayData.ArrayJsonContext.Array.JsonObjectArray = (json_object**)realloc(JsonArrayData.ArrayJsonContext.Array.JsonObjectArray, JsonArrayData.ArrayJsonContext.Size * sizeof(json_object*));
                     }
-
+                    
                     JsonArrayData.Type = type_Json;
                     json_object* json = new json_object();
                     JsonArrayData.ArrayJsonContext.Array.JsonObjectArray[JsonArrayData.Size++] = json;
@@ -527,7 +527,7 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
             // CHANGING THE CATEGORY
             EvaluateCategory(&TempCategory, TempBuffer, &TempBufferSize);
             PushJsonCategory(&TempCategory);
-
+            
             if (Token == token_CloseBraces)
             {
                 // Always break if we have the close braces
@@ -638,7 +638,7 @@ void json_object::PushArrayValue(temp_array_data* ArrayData, u16 Flags, char* Te
         
         case type_Json:
         {
-
+            
         }
         break;
         
@@ -665,7 +665,7 @@ void json_object::PushArray(json_category* TempCategory, temp_array_data* ArrayD
             ArrayRef.Value.NumberArray = AsNumbers;
         }
         break;
-
+        
         case enum_json_value_type::type_Bool:
         {
             u32 Bytes = sizeof(bool) * ArrayRef.Size;

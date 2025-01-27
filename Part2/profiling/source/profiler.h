@@ -11,8 +11,8 @@ struct Profiler
 {
     Profiler(const char* ScopeNameParam, f64* ElapsedTimeParam = nullptr, bool bVerboseParam = true)
         : ScopeName { ScopeNameParam }
-        , ElapsedTime { ElapsedTimeParam }
-        , bVerbose { bVerboseParam }
+    , ElapsedTime { ElapsedTimeParam }
+    , bVerbose { bVerboseParam }
     {
         StartOSTicksTimeStmap = ReadOSTimer();
         CPUCyclesStart = ReadCPUTimer();
@@ -47,5 +47,5 @@ struct Profiler
     bool bVerbose = true;
 };
 
-
+++++++++++++
 #endif //PROFILER_H

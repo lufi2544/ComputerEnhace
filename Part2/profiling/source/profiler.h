@@ -46,6 +46,4 @@ struct Profiler
     f64* ElapsedTime = nullptr;
     bool bVerbose = true;
 };
-
-++++++++++++
 #endif //PROFILER_H

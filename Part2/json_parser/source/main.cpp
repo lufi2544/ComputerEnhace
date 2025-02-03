@@ -3,7 +3,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 int main(int ArgsCount,char** Args)
-{        
+{   /*
     f64 Profiler_Parsing = 0;
     f64 Profiler_Printing = 0;
     {
@@ -16,6 +16,10 @@ int main(int ArgsCount,char** Args)
     }
     
     printf("Parsing-Printing Proportion: %.8f \n", Profiler_Printing / Profiler_Parsing);
-    
-    return 0;
+    */
+
+    int a = GetCPUFrequency();
+    int b = 0;
+
+
 }

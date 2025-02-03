@@ -19,7 +19,7 @@ endif()
 file(GLOB_RECURSE SOURCES
     "source/*.cpp"
     "source/*.h"
-	"../profiling/source/.*h"
+    "../profiling/source/*.h"
 )
 
 # Add the executable with all gathered source files

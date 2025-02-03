@@ -47,6 +47,9 @@ static u64 ReadOSTimer(void)
 #include "mach/mach_time.h"
 
 // Read the ARM Performance Monitors Cycle Counter
+/**
+*	This is the CPU cycles since the CPU started in mac.
+*/
 static inline u64 ReadCPUTimer(void)
 {
     
@@ -55,14 +58,25 @@ static inline u64 ReadCPUTimer(void)
     return cntvct;
 }
 
+/**
+ * 	This is the frequency of the OS every second.
+*/
 static u64 GetOSTimerFrequency()
 {
+    /*
     mach_timebase_info_data_t TimeBase;
     mach_timebase_info(&TimeBase);
     return (u64)(1e9 * (double)TimeBase.denom / (double)TimeBase.numer);
+*/
+    u64 cntvct;
+    __asm__ volatile("mrs %0, cntfrq_el0" : "=r"(cntvct));
+    return cntvct;
 }
 
-
+/**
+*	Time Stamp since the system started but in this case it should be a transfromed version
+*	from the rdstc in mac.
+*/
 static u64 ReadOSTimer()
 {
     return mach_absolute_time();

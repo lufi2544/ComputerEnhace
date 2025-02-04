@@ -20,7 +20,8 @@ struct Profiler
     
     ~Profiler()
     {
-        
+
+        // TODO creating special case for MACOS
         u64 EndOSTicksTimeStamp = ReadOSTimer();
         u64 CPUCyclesEnd = ReadCPUTimer();
         u64 OSTicksDiff = EndOSTicksTimeStamp - StartOSTicksTimeStmap;

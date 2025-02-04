@@ -18,8 +18,9 @@ int main(int ArgsCount,char** Args)
     printf("Parsing-Printing Proportion: %.8f \n", Profiler_Printing / Profiler_Parsing);
     */
 
-    int a = GetCPUFrequency();
-    int b = 0;
-
-
+    f64 Profiler_Printing = 0;
+    {
+        Profiler a("Parsing Json", &Profiler_Printing);
+        GetCPUFrequency(1000);
+    }
 }

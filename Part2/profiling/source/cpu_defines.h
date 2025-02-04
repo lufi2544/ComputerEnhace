@@ -63,14 +63,17 @@ static inline u64 ReadCPUTimer(void)
 */
 static u64 GetOSTimerFrequency()
 {
-    /*
+
+   /* __asm__ volatile("mrs %0, cntfrq_el0" : "=r"(cntvct));*/
+
     mach_timebase_info_data_t TimeBase;
     mach_timebase_info(&TimeBase);
-    return (u64)(1e9 * (double)TimeBase.denom / (double)TimeBase.numer);
-*/
-    u64 cntvct;
-    __asm__ volatile("mrs %0, cntfrq_el0" : "=r"(cntvct));
-    return cntvct;
+
+    // The mach_timebase_info gives you the conversion factor from time(ns) to ticks,
+    // if we invert the conversion factor, we can get the ticks to time, and this would be the
+    // Performance Timer Frequency time to ticks in nanoseconds, so we then convert it
+    // to seconds.
+    return 1e9 * ((double)TimeBase.denom / (double)TimeBase.numer);
 }
 
 /**
@@ -79,6 +82,15 @@ static u64 GetOSTimerFrequency()
 */
 static u64 ReadOSTimer()
 {
+    /*mach_timebase_info_data_t TimeBase;
+    mach_timebase_info(&TimeBase);
+
+    // Convert the timebase into nanoseconds per tick
+     auto a = (double)TimeBase.numer / (double)TimeBase.denom;
+
+    int d = mach_absolute_time() * a;
+    return d;*/
+
     return mach_absolute_time();
 }
 
@@ -88,41 +100,35 @@ static u64 ReadOSTimer()
 
 #endif // _WIN32
 
-static u64 GetCPUFrequency(u64 MilisecondsToWait = 100)
-{
-    u64 OSFreq = GetOSTimerFrequency(); // OS Ticks per second
-    
-    u64 CPUStart = ReadCPUTimer(); // CPU cycles time stamp
-    u64 OSStart= ReadOSTimer(); // OS Ticks time stamp
-    u64 OSEnd = 0;
-    u64 OSElapsed = 0;
-    u64 OSWaitTime = OSFreq * MilisecondsToWait / 1000; // Get the Ticks to wait for the Passed in Miliseconds to Seconds
-    
-    // Increment the Time Elapsed until we reach desired Ticks
-    while(OSElapsed < OSWaitTime)
+    static u64 GetCPUFrequency(u64 MillisecondsToWait = 100)
     {
-        OSEnd = ReadOSTimer();
-        OSElapsed = OSEnd - OSStart;
+        u64 OSFreq = GetOSTimerFrequency();  // Get OS ticks per second
+        u64 CPUStart = ReadCPUTimer();       // Initial CPU timestamp
+        u64 OSStart = ReadOSTimer();         // Initial OS timestamp
+        u64 OSEnd = 0;
+        u64 OSElapsedTicks = 0;
+
+        u64 OSWaiTicks = OSFreq * MillisecondsToWait / 1000;  // Convert to OS ticks
+
+        while (OSElapsedTicks < OSWaiTicks)
+        {
+            OSEnd = ReadOSTimer();
+            OSElapsedTicks = OSEnd - OSStart;
+        }
+
+        u64 CPUEnd = ReadCPUTimer();
+        u64 CPUElapsed = CPUEnd - CPUStart;
+
+        u64 CPUFreq = 0;
+        if (OSElapsedTicks)
+        {
+            CPUFreq = OSFreq * (CPUElapsed / OSElapsedTicks);
+        }
+
+        printf("  OSTimer: %llu - %llu = %llu elapsed\n", OSStart, OSEnd, OSElapsedTicks);
+        printf(" OS Seconds: %.4f\n", (double)OSElapsedTicks / (double)OSFreq);
+        printf("  CPU Timer: %llu -> %llu = %llu elapsed\n", CPUStart, CPUEnd, CPUElapsed);
+        printf("  CPU Freq: %llu (guessed)\n", CPUFreq);
+
+        return CPUFreq;
     }
-    
-    u64 CPUEnd = ReadCPUTimer(); // Read the CPU cylces time stamp here
-    u64 CPUElapsed = CPUEnd - CPUStart; // See the Diff for the CPU cycles
-    u64 CPUFreq = 0;
-    if(OSElapsed)
-    {
-        // As we know the CPU elapsed cycles and the ticks elapsed, we can figure out
-        // the cycles in a single OS Tick and then multiply by the Ticks per second and
-        // figure out the CPU Cycles per Second.
-        //
-        // This is a Rule of Third basically.
-        CPUFreq = OSFreq * (CPUElapsed / OSElapsed);
-    }
-    
-    printf("  OSTimer: %llu - %llu = %llu elapsed \n", OSStart, OSEnd, OSElapsed);
-    printf(" OS Seconds: %.4f \n", (f64)OSElapsed / (f64)OSFreq);
-    
-    printf("  CPU Timer: %llu -> %llu = %llu elapsed  \n", CPUStart, CPUEnd, CPUElapsed);
-    printf("  CPU Freq: %llu (guessed) \n", CPUFreq);
-    
-    return CPUFreq;
-}

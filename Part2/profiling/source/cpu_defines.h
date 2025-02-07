@@ -6,7 +6,11 @@
 #include <intrin.h>
 #include <windows.h>
 
-/** This is the CPU Clock Cycles since CPU Started. */
+/** This is the CPU Clock Cycles since CPU Started.
+ * 
+ * The processor monotonically increments the time-stamp counter MSR every clock cycle and resets it to 0 whenever the processor is reset.
+ * rdtsc - Read Time Stamp Counter
+ */
 inline u64 ReadCPUTimer(void)
 {
     return __rdtsc();
@@ -28,8 +32,9 @@ static u64 GetOSTimerFrequency(void)
 
 /*
  *Retrieves the current value of the performance counter, which is a high resolution (<1us) time stamp that can be used for time-interval measurements.
-
-@juanes: This is the OS Ticks since system started.
+*
+* @juanes: This is the OS Ticks since system started. This gets the Time Stamp Counter from the CPU and conversts that to 10MHz which is 
+* QueryPerformanceFrequency.
 */
 static u64 ReadOSTimer(void)
 {

@@ -11,19 +11,38 @@
 
 #include "Task1.cpp"
 
-int main(int ArgsNum, const char** Args)
+int AmazingFunction()
 {
+    PROFILE_FUNCTION();
     int a = 0;
-    
-    f64 Result = 0;
-    {       
-        Profiler prof("Task1 Loop", &Result);
-        while(a < 1000000000)
-        {
-            a++;
-        }
+    while(a < 100000)
+    {
+        a++;
     }
     
-    printf("RESULT: %f \n", Result);
-    
+    return 1;
 }
+
+int Lolete()
+{
+    //PROFILE_FUNCTION();
+    
+    return 0;
+}
+
+int lolete()
+{
+    //PROFILE_FUNCTION();
+    return 1;
+}
+
+int main(int ArgsNum, const char** Args)
+{       
+    int a =  AmazingFunction(); 
+    
+    return 0;
+}
+
+static_assert(__COUNTER__ <= ArrayCount(profiler::ProfilePoints), "Number of ProfilePoints Exceeded...");
+
+

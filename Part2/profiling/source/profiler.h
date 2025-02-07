@@ -21,12 +21,21 @@ namespace profiler {
     
     struct ProfilerHandler
     {
+    
         ProfilerHandler() = default;
         ProfilerHandler(const char* ScopeNameParam, f64* ElapsedTimeParam = nullptr, bool bVerboseParam = true)
             : ScopeName { ScopeNameParam }
-        , ElapsedTime { ElapsedTimeParam }
-        , bVerbose { bVerboseParam }
+            , ElapsedTime { ElapsedTimeParam }
+            , bVerbose { bVerboseParam }
+        
         {
+            // TODO creating special case for MACOS
+            u64 EndOSTicksTimeStamp = ReadOSTimer();
+            u64 CPUCyclesEnd = ReadCPUTimer();
+            u64 OSTicksDiff = EndOSTicksTimeStamp - StartOSTicksTimeStmap;
+            
+            // Compute elapsed time in milliseconds with higher precision
+            f64 ElapsedTimeMiliseconds = ((f64)OSTicksDiff / (f64)GetOSTimerFrequency()) * 1000;                                             
             StartOSTicksTimeStmap = ReadOSTimer();
             CPUCyclesStart = ReadCPUTimer();
         }
@@ -60,7 +69,7 @@ namespace profiler {
         bool bVerbose = true;
     };
     
-        
+    
     extern ProfilerHandler ProfilePoints[1];        
 }
 

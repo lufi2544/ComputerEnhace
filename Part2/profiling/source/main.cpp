@@ -38,11 +38,13 @@ int lolete()
 
 int main(int ArgsNum, const char** Args)
 {       
-    int a =  AmazingFunction(); 
+    profiler::BeginProfiling();
+    
+    int a =  AmazingFunction();
+    
+    profiler::EndProfiling();
     
     return 0;
 }
 
-static_assert(__COUNTER__ <= ArrayCount(profiler::ProfilePoints), "Number of ProfilePoints Exceeded...");
-
-
+PROFILING_ASSERT_CHECK()

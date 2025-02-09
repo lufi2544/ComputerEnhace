@@ -26,7 +26,6 @@ namespace profiler {
         
         {
             
-            ProfileStart();
             
             s64 ScopeNameLen = strlen(ScopeNameParam) + 1;
             ScopeName = (char*)malloc(sizeof(char) * ScopeNameLen);
@@ -34,6 +33,8 @@ namespace profiler {
             memcpy(ScopeName, ScopeNameParam, ScopeNameLen);
             
             ID = ProfilePointsNum++;
+            
+            ProfileStart();
         }
         
         void ProfileStart()
@@ -108,11 +109,11 @@ namespace profiler {
             }
             
             // print global info
-            printf("%s profiled: %.4f ms. Total Percentage: %.4f", profiler.ScopeName, profiler.ProfiledMiliseconds, (profiler.ProfiledMiliseconds / global_time));
+            printf("%s profiled: %.4f ms. Total Percentage: %.4f \n", profiler.ScopeName, profiler.ProfiledMiliseconds, (profiler.ProfiledMiliseconds / global_time) * 100);
             free(profiler.ScopeName);
         }
         
-        printf("%s scope: %.4f ms.", global_profiler.ScopeName, global_time);
+        printf("%s scope: %.4f ms. \n", global_profiler.ScopeName, global_time);
         free(global_profiler.ScopeName);
     }
     

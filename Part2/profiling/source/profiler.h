@@ -20,13 +20,10 @@ namespace profiler {
     struct ProfilerHandler
     {
         ProfilerHandler() = default;
-        ProfilerHandler(const char* ScopeNameParam, bool bIsGlobalProfilerParam = false, bool bVerboseParam = false)
-            : bVerbose { bVerboseParam }
-        , bIsGlobalProfiler { bIsGlobalProfilerParam }
+        ProfilerHandler(const char* ScopeNameParam, bool bIsGlobalProfilerParam = false)
+            : bIsGlobalProfiler { bIsGlobalProfilerParam }
         
-        {
-            
-            
+        {                        
             s64 ScopeNameLen = strlen(ScopeNameParam) + 1;
             ScopeName = (char*)malloc(sizeof(char) * ScopeNameLen);
             memset(ScopeName, '\0', ScopeNameLen);
@@ -80,7 +77,6 @@ namespace profiler {
         u64 CPUCyclesStart = 0;
         f64 ProfiledMiliseconds = 0;
         u16 ID = 0;
-        bool bVerbose = true;
         bool bIsGlobalProfiler = false;
     };
     
@@ -109,7 +105,7 @@ namespace profiler {
             }
             
             // print global info
-            printf("%s profiled: %.4f ms. Total Percentage: %.4f \n", profiler.ScopeName, profiler.ProfiledMiliseconds, (profiler.ProfiledMiliseconds / global_time) * 100);
+            printf("::%s %.4f ms. Total Percentage: %.4f \n", profiler.ScopeName, profiler.ProfiledMiliseconds, (profiler.ProfiledMiliseconds / global_time) * 100);
             free(profiler.ScopeName);
         }
         

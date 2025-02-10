@@ -23,17 +23,21 @@ int AmazingFunction()
     return 1;
 }
 
-int Lolete()
+int AmazingFunction_2()
 {
-    //PROFILE_FUNCTION();
+    PROFILE_FUNCTION();
+    int a = 0;
+    while(a < 100000)
+    {
+        a++;
+    }
     
-    return 0;
+    return 1;    
 }
 
-int lolete()
+int Mock()
 {
-    //PROFILE_FUNCTION();
-    return 1;
+    return  1;
 }
 
 int main(int ArgsNum, const char** Args)
@@ -41,6 +45,8 @@ int main(int ArgsNum, const char** Args)
     profiler::BeginProfiling();
     
     int a =  AmazingFunction();
+    int b = AmazingFunction_2();    
+    Mock();
     
     profiler::EndProfiling();
     

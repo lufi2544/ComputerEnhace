@@ -6,7 +6,7 @@
 #include "types.h"
 #include "cpu_defines.h"
 
-#define PROFILE_POINTS_NUM 256
+#define PROFILE_POINTS_NUM 1000
 
 
 //Maybe an array of max Profile Functions that we can have, then when finished profiling, we dump the data to the console

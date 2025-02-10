@@ -1,12 +1,10 @@
 
-#define METRICS2
-
 // cpp
 #include "cpu_defines.h"
-#include "metrics_base.cpp"
 
 // h
 #include "profiler.h"
+
 
 
 #include "Task1.cpp"
@@ -40,6 +38,8 @@ int Mock()
     return  1;
 }
 
+#if PROFILER_PROJECT // Defined in the CMakeLists as a preprocessor definition
+
 int main(int ArgsNum, const char** Args)
 {       
     profiler::BeginProfiling();
@@ -54,3 +54,5 @@ int main(int ArgsNum, const char** Args)
 }
 
 PROFILING_ASSERT_CHECK()
+
+#endif // PROFILER_PROJECT

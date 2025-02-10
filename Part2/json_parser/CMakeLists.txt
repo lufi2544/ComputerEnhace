@@ -20,6 +20,7 @@ file(GLOB_RECURSE SOURCES
     "source/*.cpp"
     "source/*.h"
     "../profiling/source/*.h"
+    "../profiling/source/*.cpp"
 )
 
 # Add the executable with all gathered source files

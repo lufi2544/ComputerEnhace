@@ -35,6 +35,8 @@ int AmazingFunction_2()
 
 int Mock()
 {
+    PROFILE_FUNCTION();
+    int aa = GetCPUFrequency(1000);
     return  1;
 }
 
@@ -47,6 +49,7 @@ int main(int ArgsNum, const char** Args)
     int a =  AmazingFunction();
     int b = AmazingFunction_2();    
     Mock();
+
     
     profiler::EndProfiling();
     

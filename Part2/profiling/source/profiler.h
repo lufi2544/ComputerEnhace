@@ -5,6 +5,7 @@
 
 #include "types.h"
 #include "cpu_defines.h"
+#include "string.h"
 
 #define PROFILE_POINTS_NUM 1000
 

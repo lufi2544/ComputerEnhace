@@ -20,7 +20,7 @@ inline u64 ReadCPUTimer(void)
  *Retrieves the frequency of the performance counter. The frequency of the performance counter is fixed at system boot and is consistent
  * across all processors. Therefore, the frequency need only be queried upon application initialization, and the result can be cached.
 
- @juanes: This are the OS Ticks in 1 second.
+ @juanes: This is the Time Stamp Counter Timer Frequency in a Second of OSTicks.
 */
 static u64 GetOSTimerFrequency(void)
 {

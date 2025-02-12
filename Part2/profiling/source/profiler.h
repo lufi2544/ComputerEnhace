@@ -13,132 +13,113 @@
 //Maybe an array of max Profile Functions that we can have, then when finished profiling, we dump the data to the console
 // Static assert about the max profilers we can have.
 
+
+#define NameConcat2(A, B) A##B
+#define NameConcat(A, B) NameConcat2(A, B)
+
 namespace profiler {         
     
     struct profiler_anchor
     {
         u64 TSCElapsed;
+        u64 TSCPUElapsed;
         u64 HitCount;
         char const* Label;
     };
     
     struct core
     {
-        profile_anchor Anchors[4096];
+        profiler_anchor Anchors[4096];        
         
-        u64 StartTSC;
-        u64 EndTSC;
+        u64 StartTS;
+        u64 EndTS;
+        
+        u64 StartTSCPU;
+        u64 EndTSCPU;
     };
-    
-    extern profiler GlobalProfiler;
-    
-    
-    extern u16 ProfilePointsNum;
-    extern struct ProfilerHandler ProfilePoints[PROFILE_POINTS_NUM];        
-    
-    struct ProfilerHandler
+            
+    extern core GlobalProfiler;           
+    struct profile_block
     {
-        ProfilerHandler() = default;
-        ProfilerHandler(const char* ScopeNameParam, bool bIsGlobalProfilerParam = false)
-            : bIsGlobalProfiler { bIsGlobalProfilerParam }
-        
-        {                        
-            s64 ScopeNameLen = strlen(ScopeNameParam) + 1;
-            ScopeName = (char*)malloc(sizeof(char) * ScopeNameLen);
-            memset(ScopeName, '\0', ScopeNameLen);
-            memcpy(ScopeName, ScopeNameParam, ScopeNameLen);
-            
-            ID = ProfilePointsNum++;
-            
-            ProfileStart();
-        }
-        
-        void ProfileStart()
+        profile_block() = default;       
+        profile_block(char const *Label_, u32 AnchorIndex_)
         {
-            // Compute elapsed time in milliseconds with higher precision
-            StartOSTicksTimeStmap = ReadOSTimer();
-            CPUCyclesStart = ReadCPUTimer();
+            AnchorIndex = AnchorIndex_;
+            Label = Label_;
+            StartTS = ReadOSTimer();
+            StartCPUTS = ReadCPUTimer();
+        }             
+                      
+        ~profile_block()
+        {                    
+            u64 Elapsed = ReadOSTimer() - StartTS;
+            u64 CPUElapsed = ReadCPUTimer() - StartCPUTS;
+            
+            profiler_anchor *Anchor = GlobalProfiler.Anchors + AnchorIndex;
+            Anchor->TSCElapsed += Elapsed;
+            Anchor->TSCPUElapsed += CPUElapsed;
+            
+            // TODO Investigate.
+            Anchor->Label = Label;
         }
         
-        void ProfileEnd()
-        {
-            u64 EndOSTicksTimeStamp = ReadOSTimer();
-            u64 CPUCyclesEnd = ReadCPUTimer();
-            u64 OSTicksDiff = EndOSTicksTimeStamp - StartOSTicksTimeStmap;
-            
-            //(juanes.rayo): in MACOS it seems that in user mode is impossible to access the CPU cycles, just in kernel mode... 
-            // we expect it to be wrong data.
-            // Compute elapsed time in milliseconds with higher precision
-            f64 ElapsedTimeMiliseconds = ((f64)OSTicksDiff / (f64)GetOSTimerFrequency()) * 1000;
-            ProfiledMiliseconds = ElapsedTimeMiliseconds;
-            
-            /*if(bVerbose)
-            {            
-                printf("%s Function: Elapsed: Time: %.8f ms, CPUCycles: %llu \n", ScopeName, ElapsedTimeMiliseconds, CPUCyclesEnd - CPUCyclesStart); 
-            }*/
-            
-            //Info Stamp the Profiled info.
-            
-            ProfilePoints[ID] = *this;
-        }
-        
-        ~ProfilerHandler()
-        {
-            if(!bIsGlobalProfiler)
-            {
-                ProfileEnd();
-            }
-        }
-        
-        
-        char* ScopeName = nullptr;
-        u64 StartOSTicksTimeStmap = 0;        
-        u64 CPUCyclesStart = 0;
-        f64 ProfiledMiliseconds = 0;
-        u16 ID = 0;
-        bool bIsGlobalProfiler = false;
-    };
-    
-    
-    extern ProfilerHandler global_profiler;
+        char const* Label;
+        u64 StartTS;
+        u64 StartCPUTS;
+        u32 AnchorIndex;        
+    };      
     
     inline void BeginProfiling()
     {
-        global_profiler = ProfilerHandler("global_profiler", true);
-        __COUNTER__;
+        GlobalProfiler.StartTS = ReadOSTimer();        
+        GlobalProfiler.StartTSCPU = ReadCPUTimer();
+    }
+    
+    inline void PrintTimeElapsed(u64 TotalElapsed, u64 OSTSCFrequency, profiler_anchor *Anchor)
+    {
+        u64 Elapsed = Anchor->TSCElapsed;
+        
+        f64 ElapsedMiliseconds = ((f64)Elapsed / (f64)OSTSCFrequency) * 1000;
+        
+        u64 CPUElapsed = Anchor->TSCPUElapsed;        
+        f64 Percent = 100.0 * ((f64)Elapsed / (f64)TotalElapsed);
+        
+        printf("   %s[%llu]: %.4fms (%.2f%%) CPU: %llu\n", Anchor->Label, Anchor->HitCount, ElapsedMiliseconds, Percent, CPUElapsed);
+        
     }
     
     inline void EndProfiling()
     {
-        global_profiler.ProfileEnd();
-        const f64 global_time = global_profiler.ProfiledMiliseconds;
+        
+        GlobalProfiler.EndTS = ReadOSTimer();
+        GlobalProfiler.EndTSCPU = ReadCPUTimer();
+        u64 TotalTimeElapsed = GlobalProfiler.EndTS - GlobalProfiler.StartTS;
+        u64 OSTimeStampCounterTimerFrequency = GetOSTimerFrequency();
         
         // Info Stamp to the Global Profilers
         
-        for(u16 ProfilerIndex = 0; ProfilerIndex < ProfilePointsNum; ProfilerIndex++)
+        for(u32 AnchorIndex = 0; AnchorIndex < ArrayCount(GlobalProfiler.Anchors); ++AnchorIndex)
         {
-            ProfilerHandler profiler = ProfilePoints[ProfilerIndex];
-            if(profiler.bIsGlobalProfiler)
+            profiler_anchor* Anchor = GlobalProfiler.Anchors + AnchorIndex;
+            if(Anchor->TSCElapsed)
             {
-                continue;
+                PrintTimeElapsed(TotalTimeElapsed, OSTimeStampCounterTimerFrequency, Anchor);
             }
-            
-            // print global info
-            printf("::%s %.4f ms. Total Percentage: %.4f \n", profiler.ScopeName, profiler.ProfiledMiliseconds, (profiler.ProfiledMiliseconds / global_time) * 100);
-            free(profiler.ScopeName);
         }
         
-        printf("%s scope: %.4f ms. \n", global_profiler.ScopeName, global_time);
-        free(global_profiler.ScopeName);
+        f64 GlobalTimePassedMS = ((f64)TotalTimeElapsed / OSTimeStampCounterTimerFrequency) * 1000;
+        u64 GlobalPassedCPU = GlobalProfiler.EndTSCPU - GlobalProfiler.StartTSCPU;
+        printf("   Global Profiling Scope: %.4f ms CPU: %llu \n", GlobalTimePassedMS, GlobalPassedCPU);
+            
     }
+       
     
 } //::profiler
 
-#define PROFILE_FUNCTION() \
-profiler::ProfilerHandler function_profiler(__FUNCTION__); \
-__COUNTER__; \
+#define PROFILE_BLOCK(Name) profiler::profile_block NameConcat(Block, __LINE__)(Name, __COUNTER__ + 1/* Reserving the 0 Index here  */);
+#define PROFILE_FUNCTION() PROFILE_BLOCK(__func__)
 
-#define PROFILING_ASSERT_CHECK() static_assert(__COUNTER__  <= (ArrayCount(profiler::ProfilePoints)), "Number of ProfilePoints Exceeded...");
+#define PROFILING_ASSERT_CHECK() static_assert(__COUNTER__  <= (ArrayCount(profiler::core::Anchors)), "Number of ProfilePoints Exceeded...");
 #define PROFILE_SCOPE() \
 
 

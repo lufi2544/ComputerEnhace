@@ -35,8 +35,7 @@ int AmazingFunction_2()
 
 int Mock()
 {
-    PROFILE_FUNCTION();
-    int aa = GetCPUFrequency(1000);
+    GetCPUFrequency(1000);
     return  1;
 }
 

@@ -7,13 +7,31 @@
 #include "cpu_defines.h"
 #include "string.h"
 
-#define PROFILE_POINTS_NUM 1000
+#define PROFILE_POINTS_NUM 4096
 
 
 //Maybe an array of max Profile Functions that we can have, then when finished profiling, we dump the data to the console
 // Static assert about the max profilers we can have.
 
-namespace profiler {               
+namespace profiler {         
+    
+    struct profiler_anchor
+    {
+        u64 TSCElapsed;
+        u64 HitCount;
+        char const* Label;
+    };
+    
+    struct core
+    {
+        profile_anchor Anchors[4096];
+        
+        u64 StartTSC;
+        u64 EndTSC;
+    };
+    
+    extern profiler GlobalProfiler;
+    
     
     extern u16 ProfilePointsNum;
     extern struct ProfilerHandler ProfilePoints[PROFILE_POINTS_NUM];        

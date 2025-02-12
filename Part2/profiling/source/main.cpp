@@ -49,7 +49,7 @@ int main(int ArgsNum, const char** Args)
     int a =  AmazingFunction();
     int b = AmazingFunction_2();    
     Mock();
-
+    
     
     profiler::EndProfiling();
     

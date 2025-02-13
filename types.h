@@ -21,4 +21,8 @@ typedef int32_t b32;
 typedef float f32;
 typedef double f64;
 
+#define global static
+#define local static
+#define function_global static
+
 #define ArrayCount(Array) sizeof(Array) / sizeof((Array)[0])

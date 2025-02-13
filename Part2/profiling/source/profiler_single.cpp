@@ -1,11 +1,7 @@
-/* date = January 20th 2025 11:25 am */
 
-#ifndef PROFILER_H
-#define PROFILER_H
-
-#include "types.h"
-#include "cpu_defines.h"
+#ifdef __APPLE__
 #include "string.h"
+#endif
 
 #define PROFILE_POINTS_NUM 4096
 
@@ -37,8 +33,9 @@ namespace profiler {
         u64 StartTSCPU;
         u64 EndTSCPU;
     };
-            
-    extern core GlobalProfiler;           
+    
+    global core GlobalProfiler;   
+    
     struct profile_block
     {
         profile_block() = default;       
@@ -49,7 +46,7 @@ namespace profiler {
             StartTS = ReadOSTimer();
             StartCPUTS = ReadCPUTimer();            
         }             
-                      
+        
         ~profile_block()
         {                    
             u64 Elapsed = ReadOSTimer() - StartTS;
@@ -76,7 +73,7 @@ namespace profiler {
         GlobalProfiler.StartTSCPU = ReadCPUTimer();
     }
     
-    inline void PrintTimeElapsed(u64 TotalElapsed, u64 OSTSCFrequency, profiler_anchor *Anchor)
+    function_global void PrintTimeElapsed(u64 TotalElapsed, u64 OSTSCFrequency, profiler_anchor *Anchor)
     {
         u64 Elapsed = Anchor->TSCElapsed;
         
@@ -89,7 +86,7 @@ namespace profiler {
         
     }
     
-    inline void EndProfiling()
+    function_global void EndProfiling()
     {
         
         GlobalProfiler.EndTS = ReadOSTimer();
@@ -111,9 +108,9 @@ namespace profiler {
         f64 GlobalTimePassedMS = ((f64)TotalTimeElapsed / OSTimeStampCounterTimerFrequency) * 1000;
         u64 GlobalPassedCPU = GlobalProfiler.EndTSCPU - GlobalProfiler.StartTSCPU;
         printf("   Global Profiling Scope: %.4f ms CPU: %llu \n", GlobalTimePassedMS, GlobalPassedCPU);
-            
+        
     }
-       
+    
     
 } //::profiler
 
@@ -121,8 +118,4 @@ namespace profiler {
 #define PROFILE_FUNCTION() PROFILE_BLOCK(__func__)
 
 #define PROFILING_ASSERT_CHECK() static_assert(__COUNTER__  <= (ArrayCount(profiler::core::Anchors)), "Number of ProfilePoints Exceeded...");
-#define PROFILE_SCOPE() \
-
-
-#endif //PROFILER_H
 

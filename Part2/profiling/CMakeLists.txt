@@ -19,7 +19,7 @@ endif()
 
 # Use file(GLOB ...) to include all .cpp files in the source directory
 file(GLOB_RECURSE SOURCES 
- "source/*.cpp" 
+ "source/main.cpp" 
  "source/*.h"
 )
 

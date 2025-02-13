@@ -1,13 +1,10 @@
 
-// cpp
-#include "cpu_defines.h"
-
 // h
-#include "profiler.h"
+#include "types.h"
 
-
-
-#include "Task1.cpp"
+// cpp
+#include "cpu_defines_single.cpp"
+#include "profiler_single.cpp"
 
 int AmazingFunction()
 {

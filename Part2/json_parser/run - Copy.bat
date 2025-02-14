@@ -1,3 +1,3 @@
 @echo off
-cd build
+cd build/Debug
 JsonParser.exe 

@@ -360,7 +360,9 @@ function_global void EvaluateArrayValue(u16 Flags, enum_json_value_type *Type, c
 }
 
 
-
+////////////////////////////////////
+////      JSON OBJECT          /////
+////////////////////////////////////
 
 // Maybe making a different struct for this object, so we can have a handler and a json 
 // because in the subcategory is a bit weird.
@@ -387,9 +389,12 @@ struct json_object
         rewind(file);
         Buffer = MakeBuffer(BufferSize);
         
-        // Get the file size;
-        fread(Buffer, sizeof(char), BufferSize, file);
-        fclose(file);
+        {
+            PROFILE_BLOCK("Memory Allocation")
+          // Get the file size;
+          fread(Buffer, sizeof(char), BufferSize, file);
+          fclose(file);
+        }
         
         Name = FileName;        
         ParseBuffer(Buffer, BufferSize, 0);        
@@ -601,6 +606,7 @@ struct json_object
     
     void Print()
     {       
+        PROFILE_FUNCTION();
         if(Name != nullptr)
         {
             printf("Printing Json: %s \n", Name);

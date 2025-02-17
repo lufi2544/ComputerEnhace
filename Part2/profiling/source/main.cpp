@@ -6,16 +6,28 @@
 #include "cpu_defines_single.cpp"
 #include "profiler_single.cpp"
 
-int AmazingFunction()
+int recursive_function(int num)
+{
+    
+    PROFILE_FUNCTION();
+    if(num)
+    {
+        PROFILE_BLOCK("Rec");        
+        num--;
+        num+= recursive_function(num);        
+    }
+    
+    return num;
+}
+
+void AmazingFunction()
 {
     PROFILE_FUNCTION();
     int a = 0;
-    while(a < 100000)
+    while(a < 1000000)
     {
         a++;
-    }
-    
-    return 1;
+    }        
 }
 
 int AmazingFunction_2()
@@ -24,6 +36,7 @@ int AmazingFunction_2()
     int a = 0;
     while(a < 100000)
     {
+        PROFILE_BLOCK("Loop");
         a++;
     }
     
@@ -32,22 +45,23 @@ int AmazingFunction_2()
 
 int Mock()
 {
+    PROFILE_FUNCTION();
     GetCPUFrequency(1000);
     return  1;
 }
 
-#if PROFILER_PROJECT // Defined in the CMakeLists as a preprocessor definition
+#ifdef PROFILER_PROJECT // Defined in the CMakeLists as a preprocessor definition
 
 int main(int ArgsNum, const char** Args)
 {       
-    profiler::BeginProfiling();
+    profiler::BeginProfiling();   
     
-    int a =  AmazingFunction();
-    int b = AmazingFunction_2();    
-    Mock();
-    
+    int a = recursive_function(1);   
     
     profiler::EndProfiling();
+    
+    
+    printf("Result: %i \n", a);
     
     return 0;
 }

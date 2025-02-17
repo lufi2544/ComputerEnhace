@@ -13,8 +13,10 @@
 int main(int ArgsCount,char** Args)
 {   
     profiler::BeginProfiling();
+    
     json_object json("input.json");       
     json.Print();        
+    
     profiler::EndProfiling();        
     
     return 0;

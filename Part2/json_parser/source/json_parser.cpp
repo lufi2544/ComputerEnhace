@@ -197,16 +197,19 @@ json_object::json_object(const char* FileName)
         fprintf(stderr, "Could not open the JSON file...");
         return;
     }
-           
-    fseek(file, 0, SEEK_END);
-    BufferSize = ftell(file);
-    rewind(file);
-    Buffer = MakeBuffer(BufferSize);
+    
+    {
+        PROFILE_BLOCK("MemoryAllocation");
+        fseek(file, 0, SEEK_END);
+        BufferSize = ftell(file);
+        rewind(file);
+        Buffer = MakeBuffer(BufferSize);
+    }
     
     // Get the file size;
     fread(Buffer, sizeof(char), BufferSize, file);
     fclose(file);
-        
+    
     Name = FileName;        
     ParseBuffer(Buffer, BufferSize, 0);        
 }

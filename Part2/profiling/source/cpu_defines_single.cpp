@@ -102,7 +102,7 @@ function_global u64 ReadOSTimer()
 
 #endif // _WIN32
 
-function_global u64 GetCPUFrequency(u64 MillisecondsToWait = 100)
+function_global u64 GetCPUFrequency(u64 MillisecondsToWait = 100, bool bVerbose = true)
 {
     u64 OSFreq = GetOSTimerFrequency();  // Get OS ticks per second
     u64 CPUStart = ReadCPUTimer();       // Initial CPU timestamp
@@ -127,10 +127,13 @@ function_global u64 GetCPUFrequency(u64 MillisecondsToWait = 100)
         CPUFreq = OSFreq * (CPUElapsed / OSElapsedTicks);
     }
     
-    printf("  OSTimer: %llu - %llu = %llu elapsed\n", OSStart, OSEnd, OSElapsedTicks);
-    printf(" OS Seconds: %.4f\n", (double)OSElapsedTicks / (double)OSFreq);
-    printf("  CPU Timer: %llu -> %llu = %llu elapsed\n", CPUStart, CPUEnd, CPUElapsed);
-    printf("  CPU Freq: %llu (guessed)\n", CPUFreq);
+    if(bVerbose)
+    {
+        printf("  OSTimer: %llu - %llu = %llu elapsed\n", OSStart, OSEnd, OSElapsedTicks);
+        printf(" OS Seconds: %.4f\n", (double)OSElapsedTicks / (double)OSFreq);
+        printf("  CPU Timer: %llu -> %llu = %llu elapsed\n", CPUStart, CPUEnd, CPUElapsed);
+        printf("  CPU Freq: %llu (guessed)\n", CPUFreq);
+    }
     
     return CPUFreq;
 }

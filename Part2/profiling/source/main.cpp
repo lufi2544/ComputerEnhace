@@ -12,7 +12,6 @@ int recursive_function(int num)
     PROFILE_FUNCTION();
     if(num)
     {
-        PROFILE_BLOCK("Rec");        
         num--;
         num+= recursive_function(num);        
     }
@@ -43,6 +42,7 @@ int AmazingFunction_2()
     return 1;    
 }
 
+ 
 int Mock()
 {
     PROFILE_FUNCTION();
@@ -56,7 +56,7 @@ int main(int ArgsNum, const char** Args)
 {       
     profiler::BeginProfiling();   
     
-    int a = recursive_function(1);   
+    int a = recursive_function(100);   
     
     profiler::EndProfiling();
     

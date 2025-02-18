@@ -28,9 +28,14 @@ namespace profiler {
         u32 Index;
     };
     
+    
+#define RECURSION_CHECK_DEPTH 10 /* Depth of looking up for parent index with same index as current function scope. */
+#define PROFILER_DEFAULT 0
+    
     struct core
     {
-        profiler_anchor Anchors[4096];        
+        profiler_anchor Anchors[4096];    
+        u32 AnchorsStack[RECURSION_CHECK_DEPTH];
         
         u64 StartTS;
         u64 EndTS;
@@ -42,7 +47,7 @@ namespace profiler {
     global core GlobalProfiler;   
     global u32 GlobalProfilerParent;
     
-    #define RECURSION_CHECK_DEPTH 10 /* Depth of looking up for parent index with same index as current function scope. */
+    
     
     // RECURSION
     /**
@@ -73,20 +78,37 @@ namespace profiler {
             Anchor->ParentIndex = ParentIndex;
             Anchor->Index = AnchorIndex;
             Anchor->HitCount++;
-                       
+            
             if(!Anchor->bIsRecursive)
             {                
                 // Recursive Check
                 u32 RecursionCheck = 0;
                 u32 IndexToCheck = ParentIndex;
+                u32 RecursionHit = 0;
                 while(RecursionCheck < RECURSION_CHECK_DEPTH)
-                {
-                    
+                {                    
                     profiler_anchor *AnchorToCheck = GlobalProfiler.Anchors + IndexToCheck;            
-                    if(AnchorToCheck->bIsFunction && AnchorToCheck->Index == AnchorIndex && AnchorToCheck->TSCElapsed == 0/* No Time Stamped yet */)
+                    GlobalProfiler.AnchorsStack[RecursionCheck] = AnchorToCheck->Index;
+                    
+                    if(AnchorToCheck->bIsFunction && AnchorToCheck->Index != PROFILER_DEFAULT && AnchorToCheck->Index == AnchorIndex && AnchorToCheck->TSCElapsed == 0/* No Time Stamped yet */)
                     {
                         // Recursion
                         AnchorToCheck->bIsRecursive = true;
+                        
+                        //We have to update the childs until we reach the current scope                        
+                        s32 HitIndex = RecursionCheck;
+                        while(HitIndex >= 0)
+                        {
+                            profiler_anchor *Anchor = GlobalProfiler.Anchors + GlobalProfiler.AnchorsStack[HitIndex];
+                            if(Anchor->Index != AnchorIndex)
+                            {
+                                Anchor->bIsRecursive = true;
+                            }
+                            
+                            HitIndex--;
+                        }
+                        
+                        
                         break;
                     }
                     
@@ -94,7 +116,7 @@ namespace profiler {
                     RecursionCheck++;
                 }
             }
-
+            
         }             
         
         ~profile_block()
@@ -109,7 +131,7 @@ namespace profiler {
             if(!Parent->bIsRecursive && Anchor->bIsFunction && Anchor->bIsRecursive)
             {
                 printf("---------------------------- \n");
-                printf("Detected Recursion --> Label: %s Reached %llu times.\n", Label, Anchor->HitCount);
+                printf("Detected Recursion --> Label:: %s. Reached %llu times.\n", Label, Anchor->HitCount);
                 printf("---------------------------- \n");
             }
             

@@ -390,7 +390,7 @@ struct json_object
         Buffer = MakeBuffer(BufferSize);
         
         {
-            PROFILE_BLOCK("Memory Allocation")
+            PROFILE_BLOCK("Block_Memory Allocation")
           // Get the file size;
           fread(Buffer, sizeof(char), BufferSize, file);
           fclose(file);
@@ -415,6 +415,7 @@ struct json_object
     
     u32 ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex = 0)
     {
+        PROFILE_FUNCTION();
         u32 ReadChars = 0;
         u16 Flags = 0;
         
@@ -435,6 +436,7 @@ struct json_object
         u32 TempBufferSize = 0;
         for(u32 Index = FirstIndex; Index < BufferSize; ++Index)
         {
+            PROFILE_BLOCK("Block Parsing Buffer Reading");
             ++ReadChars;
             char BufferChar = Buffer[Index];
             enum_json_token Token = GetToken(BufferChar);

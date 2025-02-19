@@ -1,3 +1,4 @@
+
 #include "profiler.h"
 
 namespace profiler {

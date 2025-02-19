@@ -211,6 +211,7 @@ json_object::json_object(const char* FileName)
     fclose(file);
     
     Name = FileName;        
+    printf("PEPE")
     ParseBuffer(Buffer, BufferSize, 0);        
 }
 
@@ -364,6 +365,7 @@ void EvaluateArrayValue(u16 Flags, enum_json_value_type *Type, char* TempBuffer,
 
 u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex /*= 0*/)
 {
+    PROFILE_FUNCTION();
     u32 ReadChars = 0;
     u16 Flags = 0;
     
@@ -384,6 +386,7 @@ u32 json_object::ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex 
     u32 TempBufferSize = 0;
     for(u32 Index = FirstIndex; Index < BufferSize; ++Index)
     {
+        PROFILE_BLOCK("Reading Buffer");
         ++ReadChars;
         char BufferChar = Buffer[Index];
         enum_json_token Token = GetToken(BufferChar);

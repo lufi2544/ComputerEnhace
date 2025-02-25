@@ -3,6 +3,11 @@
 #include "string.h"
 #endif
 
+#ifndef WITH_PROFILER
+#define WITH_PROFILER 0
+#endif 
+
+
 #define NameConcat2(A, B) A##B
 #define NameConcat(A, B) NameConcat2(A, B)
 
@@ -13,6 +18,7 @@
 
 namespace profiler {         
     
+#if PROFILER
     struct profiler_anchor
     {
         u64 TSCElapsedExclusive;
@@ -23,57 +29,39 @@ namespace profiler {
         
         u32 ParentIndex;
         u32 Index;
-    };
+        bool bIsBlock;
+    };    
     
-    
-#define RECURSION_CHECK_DEPTH 10 /* Depth of looking up for parent index with same index as current function scope. */
-#define PROFILER_DEFAULT 0
-    
-    struct core
-    {
-        profiler_anchor Anchors[4096];    
-        u32 AnchorsStack[RECURSION_CHECK_DEPTH];        
-        
-        u64 StartTS;
-        u64 EndTS;
-        
-        u64 StartTSCPU;
-        u64 EndTSCPU;
-    };
-    
-    global core GlobalProfiler;   
     global u32 GlobalProfilerParent;
-    
-    
+    global profiler_anchor GlobalProfilerAnchors[4096];                    
     
     // RECURSION
     /**
      * Function flag, when we reach that function, we recursively check up the ParentIndexes with X depth and then 
      * if we reach to a parent with the same Index
      * 
-
-    */
-    
+    */    
     struct profile_block
     {
         profile_block() = default;       
-        profile_block(char const *Label_, u32 AnchorIndex_)
+        profile_block(char const *Label_, u32 AnchorIndex_, bool bIsBlock_)
         {
             ParentIndex = GlobalProfilerParent;
             AnchorIndex = AnchorIndex_;
-            Label = Label_;            
+            Label = Label_;
             
-            profiler_anchor *Anchor = GlobalProfiler.Anchors + AnchorIndex;
+            profiler_anchor *Anchor = GlobalProfilerAnchors + AnchorIndex;
             Anchor->ParentIndex = ParentIndex;
             Anchor->Index = AnchorIndex;
             Anchor->HitCount++;
+            Anchor->bIsBlock = bIsBlock_;
             OldTSCElapsedInclusive = Anchor->TSCElapsedInclusive;
-                    
+            
             // Time Stamp 
             StartTS = ReadOSTimer();
             StartCPUTS = ReadCPUTimer();            
             
-            GlobalProfilerParent = AnchorIndex_;
+            GlobalProfilerParent = AnchorIndex_;            
         }             
         
         ~profile_block()
@@ -82,8 +70,8 @@ namespace profiler {
             u64 CPUElapsed = ReadCPUTimer() - StartCPUTS;
             GlobalProfilerParent = ParentIndex;
             
-            profiler_anchor *Parent = GlobalProfiler.Anchors + ParentIndex;
-            profiler_anchor *Anchor = GlobalProfiler.Anchors + AnchorIndex;
+            profiler_anchor *Parent = GlobalProfilerAnchors + ParentIndex;
+            profiler_anchor *Anchor = GlobalProfilerAnchors + AnchorIndex;
             
             // Excluding the time passed from the parent and then adding the time passed to this Anchor Exclusive time
             // since children may subtract it from it as well.
@@ -102,23 +90,24 @@ namespace profiler {
         u64 StartCPUTS;
         u64 OldTSCElapsedInclusive;
         u32 AnchorIndex;        
-        u32 ParentIndex;
-        bool bIsFunction;
-    };      
-    
-    inline void BeginProfiling()
-    {
-        GlobalProfiler.StartTS = ReadOSTimer();        
-        GlobalProfiler.StartTSCPU = ReadCPUTimer();
-    }
+        u32 ParentIndex;       
+    }; 
     
     function_global void PrintTimeElapsed(u64 TotalElapsed, u64 OSTSCFrequency, profiler_anchor *Anchor)
     {
         f64 ElapsedMiliseconds = ((f64)Anchor->TSCElapsedExclusive / (f64)OSTSCFrequency) * 1000;        
         u64 CPUElapsed = Anchor->TSCPUElapsed;
         f64 Percent = 100.0 * ((f64)Anchor->TSCElapsedExclusive / (f64)TotalElapsed);
-                
-        printf("   %s[%llu]: %.4fms (%.2f%%) CPU: %llu ", Anchor->Label, Anchor->HitCount, ElapsedMiliseconds, Percent, CPUElapsed);
+        
+        if(Anchor->bIsBlock)
+        {            
+            printf("   Block %s[%llu]: %.4fms (%.2f%%) CPU: %llu ", Anchor->Label, Anchor->HitCount, ElapsedMiliseconds, Percent, CPUElapsed);            
+        }
+        else
+        {
+            printf("   %s[%llu]: %.4fms (%.2f%%) CPU: %llu ", Anchor->Label, Anchor->HitCount, ElapsedMiliseconds, Percent, CPUElapsed);            
+        }
+        
         if(Anchor->TSCElapsedInclusive != Anchor->TSCElapsedExclusive)
         {
             f64 PercentWithChildren = 100.0 * ((f64)Anchor->TSCElapsedInclusive / (f64)TotalElapsed);
@@ -127,6 +116,53 @@ namespace profiler {
         
         printf("\n");
     }
+    
+    
+    function_global void PrintAnchorsTime(u64 TotalTimeElapsed, u64 OSTimeStampCounterTimerFrequency)
+    {
+        for(u32 AnchorIndex = 1; AnchorIndex < ArrayCount(GlobalProfilerAnchors); ++AnchorIndex)
+        {
+            profiler_anchor* Anchor = GlobalProfilerAnchors + AnchorIndex;
+            if(Anchor->TSCElapsedExclusive)
+            {
+                PrintTimeElapsed(TotalTimeElapsed, OSTimeStampCounterTimerFrequency, Anchor);
+            }
+        }
+    }
+    
+#define PROFILE_BLOCK_(Name, Val) profiler::profile_block NameConcat(Block, __LINE__)(Name, __COUNTER__ + 1/* Reserving the 0 Index here  */, Val);
+#define PROFILE_BLOCK(Name) PROFILE_BLOCK_(Name, true)
+#define PROFILE_FUNCTION()  PROFILE_BLOCK_(__func__, false)
+#define PROFILING_ASSERT_CHECK() static_assert(__COUNTER__  <= (ArrayCount(profiler::GlobalProfilerAnchors)), "Number of ProfilePoints Exceeded...");
+              
+#else
+    
+#define PrintElapsedTimer(...)
+#define PrintAnchorsTime(...) 
+    
+#define PROFILE_BLOCK(...)
+#define PROFILE_FUNCTION(...)
+#define PROFILING_ASSERT_CHECK()
+    
+#endif // PROFILER
+    
+    struct core
+    {        
+        u64 StartTS;
+        u64 EndTS;
+        
+        u64 StartTSCPU;
+        u64 EndTSCPU;
+    };
+    
+    global core GlobalProfiler;   
+        
+    inline void BeginProfiling()
+    {
+        GlobalProfiler.StartTS = ReadOSTimer();        
+        GlobalProfiler.StartTSCPU = ReadCPUTimer();
+    }
+    
     
     function_global void EndProfiling()
     {
@@ -138,15 +174,9 @@ namespace profiler {
         
         // Info Stamp to the Global Profilers
         printf("-------------------------- PROFILER -------------------------------------- \n");
-        printf("\n");
-        for(u32 AnchorIndex = 1; AnchorIndex < ArrayCount(GlobalProfiler.Anchors); ++AnchorIndex)
-        {
-            profiler_anchor* Anchor = GlobalProfiler.Anchors + AnchorIndex;
-            if(Anchor->TSCElapsedExclusive)
-            {
-                PrintTimeElapsed(TotalTimeElapsed, OSTimeStampCounterTimerFrequency, Anchor);
-            }
-        }
+        printf("\n");                
+        
+        PrintAnchorsTime(TotalTimeElapsed, OSTimeStampCounterTimerFrequency);        
         
         f64 GlobalTimePassedMS = ((f64)TotalTimeElapsed / OSTimeStampCounterTimerFrequency) * 1000;
         u64 GlobalPassedCPU = GlobalProfiler.EndTSCPU - GlobalProfiler.StartTSCPU;
@@ -159,9 +189,3 @@ namespace profiler {
         
     
 } //::profiler
-
-#define PROFILE_BLOCK(Name) profiler::profile_block NameConcat(Block, __LINE__)(Name, __COUNTER__ + 1/* Reserving the 0 Index here  */);
-#define PROFILE_FUNCTION()  PROFILE_BLOCK(__func__)
-
-#define PROFILING_ASSERT_CHECK() static_assert(__COUNTER__  <= (ArrayCount(profiler::core::Anchors)), "Number of ProfilePoints Exceeded...");
-

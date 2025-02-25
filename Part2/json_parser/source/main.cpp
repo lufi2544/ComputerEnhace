@@ -1,5 +1,6 @@
 
 #define _CRT_SECURE_NO_WARNINGS
+#define WITH_PROFILER 1
 
 //h
 #include "types.h"

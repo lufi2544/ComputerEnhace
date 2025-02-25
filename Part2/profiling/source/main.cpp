@@ -2,6 +2,7 @@
 // h
 #include "types.h"
 
+#define PROFILER 1
 // cpp
 #include "cpu_defines_single.cpp"
 #include "profiler_single.cpp"
@@ -11,7 +12,7 @@ int recursive_function(int num)
     PROFILE_FUNCTION();
     if(num)
     {
-        PROFILE_BLOCK("Block");
+        PROFILE_BLOCK("if");
         num--;
         num+= recursive_function(num);        
     }

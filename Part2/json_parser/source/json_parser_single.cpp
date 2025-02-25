@@ -82,7 +82,6 @@ struct json_array
     u32 Size;
 };
 
-// TODO figure out a way of declaring the json_object with a type value in stead of a ptr.
 union json_value
 {
     char* String;
@@ -390,7 +389,7 @@ struct json_object
         Buffer = MakeBuffer(BufferSize);
         
         {
-            PROFILE_BLOCK("Block_Memory Allocation")
+            PROFILE_BLOCK("Memory Allocation")
           // Get the file size;
           fread(Buffer, sizeof(char), BufferSize, file);
           fclose(file);
@@ -436,7 +435,7 @@ struct json_object
         u32 TempBufferSize = 0;
         for(u32 Index = FirstIndex; Index < BufferSize; ++Index)
         {
-            PROFILE_BLOCK("Block Parsing Buffer Reading");
+            PROFILE_BLOCK("Parsing Buffer Reading");
             ++ReadChars;
             char BufferChar = Buffer[Index];
             enum_json_token Token = GetToken(BufferChar);
@@ -449,6 +448,7 @@ struct json_object
             // Check if we have the first "{" of the Json
             if(Token == enum_json_token::token_OpenBraces)
             {
+                PROFILE_BLOCK("Open Braces")
                 if(!CheckFlag(Flags, enum_parser_flags::flag_Open))
                 {
                     // Opening the Json
@@ -458,6 +458,7 @@ struct json_object
                 {
                     if(!CheckFlag(Flags, enum_parser_flags::flag_Array_Opened))
                     {
+                        PROFILE_BLOCK("Open Braces - SubCategory Creation")
                         // Adding another Json as a subcategory
                         if(TempCategory.Key)
                         {
@@ -480,7 +481,7 @@ struct json_object
                     }
                     else
                     {
-                        
+                        PROFILE_BLOCK("Open Braces - Adding Json Category As Array")
                         // Handle adding a json to an array of jsons.
                         if((JsonArrayData.Size + 1) > (JsonArrayData.ArrayJsonContext.Size))
                         {
@@ -503,7 +504,7 @@ struct json_object
             }
             else if(Token == enum_json_token::token_DQuote)
             {
-                
+                PROFILE_BLOCK("Double Quote")
                 // We have something in the buffer. Finished the String Value
                 if(TempBufferSize > 0)
                 {
@@ -541,11 +542,13 @@ struct json_object
             }
             else if(Token == enum_json_token::token_Dpoints)
             {
+                PROFILE_BLOCK("DPoints")
                 // Starting a Value here.
                 SetFlag(Flags, enum_parser_flags::flag_ValueOpen, true);
             }
             else if(Token == enum_json_token::token_LetterOrNumber)
             {
+                PROFILE_BLOCK("Letter Or Number")
                 PushChar(BufferChar, TempBuffer, TempBufferSize);
                 
                 // We are doing this all the time we find a letter or number, maybe figure out a way of set this once.FLAG?
@@ -569,11 +572,13 @@ struct json_object
             }
             else if(Token == enum_json_token::token_OpenSquareBracket)
             {
+                PROFILE_BLOCK("Open Square Bracket")
                 SetFlag(Flags, enum_parser_flags::flag_Array_Opened, true);
                 TempCategory.ValueType = enum_json_value_type::type_Array;
             }
             else if(Token == enum_json_token::token_CloseSquareBracket)
             {
+                PROFILE_BLOCK("Close Square Bracket")
                 SetFlag(Flags, enum_parser_flags::flag_Array_Opened, false);
                 
                 // PUSH THE LAST VALUE
@@ -584,6 +589,7 @@ struct json_object
             }
             else if(Token == enum_json_token::token_Coma)
             {
+                PROFILE_BLOCK("Coma")
                 // we are reading through the Array
                 if(CheckFlag(Flags, enum_parser_flags::flag_Array_Opened))
                 {

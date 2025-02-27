@@ -30,6 +30,8 @@ int main(int ArgsNum, const char** Args)
     
     profiler::EndProfiling();
     
+    printf("Just doing some stuff here hehe \n");
+
     
     printf("Result: %i \n", a);
     

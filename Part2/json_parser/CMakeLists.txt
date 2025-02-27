@@ -18,12 +18,10 @@ endif()
 # Use file(GLOB ...) to include all .cpp files in the source directory
 file(GLOB_RECURSE SOURCES
     "source/main.cpp"
-    "source/*.h"
-    "../profiling/source/*.h"
 )
 
 # Add the executable with all gathered source files
-add_executable(JsonParser ${SOURCES})
+add_executable(JsonParser "source/main.cpp")
 
 # Optionally add include directories
 target_include_directories(JsonParser PRIVATE

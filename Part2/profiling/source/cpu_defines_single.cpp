@@ -56,7 +56,8 @@ inline u64 ReadCPUTimer(void)
 {
     
     u64 cntvct;
-    __asm__ volatile("mrs %0, cntvct_el0" : "=r"(cntvct));
+    //__asm__ volatile("mrs %0, cntvct_el0" : "=r"(cntvct));
+    cntvct = mach_absolute_time();
     return cntvct;
 }
 

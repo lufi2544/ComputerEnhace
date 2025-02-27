@@ -3,11 +3,6 @@
 #include "string.h"
 #endif
 
-#ifndef WITH_PROFILER
-#define WITH_PROFILER 0
-#endif 
-
-
 #define NameConcat2(A, B) A##B
 #define NameConcat(A, B) NameConcat2(A, B)
 
@@ -134,7 +129,7 @@ namespace profiler {
 #define PROFILE_BLOCK(Name) PROFILE_BLOCK_(Name, true)
 #define PROFILE_FUNCTION()  PROFILE_BLOCK_(__func__, false)
 #define PROFILING_ASSERT_CHECK() static_assert(__COUNTER__  <= (ArrayCount(profiler::GlobalProfilerAnchors)), "Number of ProfilePoints Exceeded...");
-              
+    
 #else
     
 #define PrintElapsedTimer(...)
@@ -156,7 +151,7 @@ namespace profiler {
     };
     
     global core GlobalProfiler;   
-        
+    
     inline void BeginProfiling()
     {
         GlobalProfiler.StartTS = ReadOSTimer();        
@@ -186,6 +181,6 @@ namespace profiler {
         printf("-------------------------------------------------------------------------- \n");
     }
     
-        
+    
     
 } //::profiler

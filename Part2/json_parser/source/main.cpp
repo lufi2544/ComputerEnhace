@@ -1,6 +1,6 @@
 
 #define _CRT_SECURE_NO_WARNINGS
-#define WITH_PROFILER 1
+#define PROFILER 1
 
 //h
 #include "types.h"
@@ -15,8 +15,8 @@ int main(int ArgsCount,char** Args)
 {   
     profiler::BeginProfiling();
     
-    json_object json("input.json");       
-//    json.Print();        
+    json_object json("input.json");
+    json.Print();
     
     profiler::EndProfiling();        
     

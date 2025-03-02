@@ -29,10 +29,6 @@ int main(int ArgsNum, const char** Args)
     int a = recursive_function(1000);   
     
     profiler::EndProfiling();
-    
-    printf("Just doing some stuff here hehe \n");
-
-    
     printf("Result: %i \n", a);
     
     return 0;

@@ -20,10 +20,8 @@ namespace profiler {
         u64 TSCElapsedInclusive;
         u64 TSCPUElapsed;
         u64 HitCount;
+        u64 ProcessByteCount;
         char const* Label;
-        
-        u32 ParentIndex;
-        u32 Index;
         bool bIsBlock;
     };    
     
@@ -39,17 +37,16 @@ namespace profiler {
     struct profile_block
     {
         profile_block() = default;       
-        profile_block(char const *Label_, u32 AnchorIndex_, bool bIsBlock_)
+        profile_block(char const *Label_, u32 AnchorIndex_, bool bIsBlock_, u64 ByteCount)
         {
             ParentIndex = GlobalProfilerParent;
             AnchorIndex = AnchorIndex_;
             Label = Label_;
             
             profiler_anchor *Anchor = GlobalProfilerAnchors + AnchorIndex;
-            Anchor->ParentIndex = ParentIndex;
-            Anchor->Index = AnchorIndex;
             Anchor->HitCount++;
             Anchor->bIsBlock = bIsBlock_;
+            Anchor->ProcessByteCount += ByteCount;
             OldTSCElapsedInclusive = Anchor->TSCElapsedInclusive;
             
             // Time Stamp 
@@ -106,8 +103,24 @@ namespace profiler {
         if(Anchor->TSCElapsedInclusive != Anchor->TSCElapsedExclusive)
         {
             f64 PercentWithChildren = 100.0 * ((f64)Anchor->TSCElapsedInclusive / (f64)TotalElapsed);
-            printf(" (%.2f%%) w/children ", PercentWithChildren);           
-        }            
+            printf(" (%.2f%%) w/children ) ", PercentWithChildren);           
+        }         
+        
+        if(Anchor->ProcessByteCount)
+        {
+            f64 Megabyte = 1024 * 1024;
+            f64 Gigabyte = Megabyte * 1024;
+            
+            f64 Seconds = (f64)Anchor->TSCElapsedInclusive / (f64)OSTSCFrequency;
+            f64 BytesPerSecond = (f64)Anchor->ProcessByteCount / (f64)Seconds;
+            f64 Megabytes = (f64)Anchor->ProcessByteCount / (f64)Megabyte;
+            f64 GygabytesPerSecond = BytesPerSecond/ Gigabyte;
+            
+            
+            printf(" %.3fmb at %.2f gb/s", Megabytes, GygabytesPerSecond);
+            
+            
+        }
         
         printf("\n");
     }
@@ -125,16 +138,19 @@ namespace profiler {
         }
     }
     
-#define PROFILE_BLOCK_(Name, Val) profiler::profile_block NameConcat(Block, __LINE__)(Name, __COUNTER__ + 1/* Reserving the 0 Index here  */, Val);
-#define PROFILE_BLOCK(Name) PROFILE_BLOCK_(Name, true)
-#define PROFILE_FUNCTION()  PROFILE_BLOCK_(__func__, false)
+#define PROFILE_BLOCK_BANDWITH(Name, Value,  ByteCount) profiler::profile_block NameConcat(Block, __LINE__)(Name, __COUNTER__ + 1, Value, ByteCount);
+    
+#define PROFILE_BLOCK(Name) PROFILE_BLOCK_BANDWITH(Name, true, 0)
+#define PROFILE_FUNCTION()  PROFILE_BLOCK_BANDWITH(__func__, false, 0)
 #define PROFILING_ASSERT_CHECK() static_assert(__COUNTER__  <= (ArrayCount(profiler::GlobalProfilerAnchors)), "Number of ProfilePoints Exceeded...");
+    
     
 #else
     
 #define PrintElapsedTimer(...)
 #define PrintAnchorsTime(...) 
     
+#define PROFILE_BLOCK_BANDWITH(...) 
 #define PROFILE_BLOCK(...)
 #define PROFILE_FUNCTION(...)
 #define PROFILING_ASSERT_CHECK()

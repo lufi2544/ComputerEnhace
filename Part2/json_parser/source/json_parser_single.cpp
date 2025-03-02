@@ -383,16 +383,21 @@ struct json_object
             return;
         }
         
+        
+        // TODO Wrap the buffer logic inside a class called "buffer".
         fseek(file, 0, SEEK_END);
         BufferSize = ftell(file);
         rewind(file);
         Buffer = MakeBuffer(BufferSize);
         
-        {
-            PROFILE_BLOCK("Memory Allocation")
-          // Get the file size;
-          fread(Buffer, sizeof(char), BufferSize, file);
-          fclose(file);
+        { 
+            {
+                
+                // Get the file size;
+                fread(Buffer, sizeof(char), BufferSize, file);
+            }
+            
+            fclose(file);
         }
         
         Name = FileName;        
@@ -449,7 +454,7 @@ struct json_object
             if(Token == enum_json_token::token_OpenBraces)
             {
                 PROFILE_BLOCK("Open Braces")
-                if(!CheckFlag(Flags, enum_parser_flags::flag_Open))
+                    if(!CheckFlag(Flags, enum_parser_flags::flag_Open))
                 {
                     // Opening the Json
                     SetFlag(Flags, enum_parser_flags::flag_Open, true);
@@ -459,8 +464,8 @@ struct json_object
                     if(!CheckFlag(Flags, enum_parser_flags::flag_Array_Opened))
                     {
                         PROFILE_BLOCK("Open Braces - SubCategory Creation")
-                        // Adding another Json as a subcategory
-                        if(TempCategory.Key)
+                            // Adding another Json as a subcategory
+                            if(TempCategory.Key)
                         {
                             TempCategory.ValueType = enum_json_value_type::type_Json;
                         }
@@ -482,8 +487,8 @@ struct json_object
                     else
                     {
                         PROFILE_BLOCK("Open Braces - Adding Json Category As Array")
-                        // Handle adding a json to an array of jsons.
-                        if((JsonArrayData.Size + 1) > (JsonArrayData.ArrayJsonContext.Size))
+                            // Handle adding a json to an array of jsons.
+                            if((JsonArrayData.Size + 1) > (JsonArrayData.ArrayJsonContext.Size))
                         {
                             if(JsonArrayData.ArrayJsonContext.Size == 0)
                             {
@@ -505,8 +510,8 @@ struct json_object
             else if(Token == enum_json_token::token_DQuote)
             {
                 PROFILE_BLOCK("Double Quote")
-                // We have something in the buffer. Finished the String Value
-                if(TempBufferSize > 0)
+                    // We have something in the buffer. Finished the String Value
+                    if(TempBufferSize > 0)
                 {
                     SetFlag(Flags, enum_parser_flags::flag_String_Opened, false);
                     if(TempCategory.Key)
@@ -543,13 +548,13 @@ struct json_object
             else if(Token == enum_json_token::token_Dpoints)
             {
                 PROFILE_BLOCK("DPoints")
-                // Starting a Value here.
-                SetFlag(Flags, enum_parser_flags::flag_ValueOpen, true);
+                    // Starting a Value here.
+                    SetFlag(Flags, enum_parser_flags::flag_ValueOpen, true);
             }
             else if(Token == enum_json_token::token_LetterOrNumber)
             {
                 PROFILE_BLOCK("Letter Or Number")
-                PushChar(BufferChar, TempBuffer, TempBufferSize);
+                    PushChar(BufferChar, TempBuffer, TempBufferSize);
                 
                 // We are doing this all the time we find a letter or number, maybe figure out a way of set this once.FLAG?
                 if(TempCategory.ValueType == type_None && !CheckFlag(Flags, enum_parser_flags::flag_Array_Opened) && (!CheckFlag(Flags, enum_parser_flags::flag_String_Opened)))
@@ -573,13 +578,13 @@ struct json_object
             else if(Token == enum_json_token::token_OpenSquareBracket)
             {
                 PROFILE_BLOCK("Open Square Bracket")
-                SetFlag(Flags, enum_parser_flags::flag_Array_Opened, true);
+                    SetFlag(Flags, enum_parser_flags::flag_Array_Opened, true);
                 TempCategory.ValueType = enum_json_value_type::type_Array;
             }
             else if(Token == enum_json_token::token_CloseSquareBracket)
             {
                 PROFILE_BLOCK("Close Square Bracket")
-                SetFlag(Flags, enum_parser_flags::flag_Array_Opened, false);
+                    SetFlag(Flags, enum_parser_flags::flag_Array_Opened, false);
                 
                 // PUSH THE LAST VALUE
                 PushArrayValue(&JsonArrayData, Flags, TempBuffer, &TempBufferSize);
@@ -590,8 +595,8 @@ struct json_object
             else if(Token == enum_json_token::token_Coma)
             {
                 PROFILE_BLOCK("Coma")
-                // we are reading through the Array
-                if(CheckFlag(Flags, enum_parser_flags::flag_Array_Opened))
+                    // we are reading through the Array
+                    if(CheckFlag(Flags, enum_parser_flags::flag_Array_Opened))
                 {
                     PushArrayValue(&JsonArrayData, Flags, TempBuffer, &TempBufferSize);
                 }

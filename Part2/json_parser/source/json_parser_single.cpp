@@ -1,4 +1,6 @@
 
+#include "sys/stat.h"
+
 enum enum_json_token
 {
     token_None,
@@ -82,9 +84,17 @@ struct json_array
     u32 Size;
 };
 
+
+struct buffer
+{
+    u8* Bytes;
+    u64 Size;
+};
+
+
 union json_value
 {
-    char* String;
+    buffer String;
     float Number;
     bool Bool;
     struct json_object* Json;
@@ -92,22 +102,22 @@ union json_value
 };
 
 struct json_category
-{
-    char* Key = nullptr;
+{    
+    buffer Key;
     json_value Value;
     enum_json_value_type ValueType = type_None;
     
     void Release()
     {
-        if(Key)
+        if(Key.Bytes)
         {
-            free(Key);
-            Key = nullptr;
+            free(Key.Bytes);
+            Key = {};            
         }
         if (ValueType == type_String)
         {
-            free(Value.String);
-            Value.String = nullptr;
+            free(Value.String.Bytes);
+            Value.String = {};
         }
         else if(ValueType == type_Json)
         {
@@ -150,7 +160,7 @@ struct json_category
                     for(int i = 0; i < ArrayRef.Size; ++i)
                     {
                         json_object* Json = ArrayRef.Value.JsonObjectArray[i];
-                        delete(Json);
+                        delete (Json);
                     }
                     
                     delete (ArrayRef.Value.JsonObjectArray);
@@ -261,75 +271,76 @@ function_global void SetFlag(u16& Flags, enum_parser_flags FlagToSet, bool V)
 
 struct category_context
 {
-    char* Key = nullptr;
-    u32 Size = 0;
+    buffer Key;    
 };
 
 
-function_global void ResetBuffer(char* Buffer, u32 *Size)
+function_global void ResetBuffer(buffer *Buffer)
 {
-    memset(Buffer, '\0', *Size);
-    *Size = 0;
+    memset(Buffer->Bytes, '\0', Buffer->Size);    
+    Buffer->Size = 0;
 }
 
-function_global char* MakeBuffer(u32 Size)
+function_global buffer AllocateBuffer(s64 Size)
 {
-    char* result = (char*)malloc(sizeof(char) * Size + 1);
-    memset(result,'\0', Size + 1);
+    buffer Result = {};    
+    u8* Bytes  = (u8*)malloc(sizeof(u8) * Size + 1);
+    memset(Bytes,'\0', Size + 1);
     
-    return result;
+    Result.Bytes = Bytes;
+    Result.Size = Size;
+    
+    return Result;
 }
 
-function_global char* MakeBufferCopy(char *Buffer, u32 BufferSize)
-{
-    char* result = MakeBuffer(BufferSize);
-    strncpy(result, Buffer, BufferSize);
+function_global buffer AllocateBufferCopyAsString(buffer *Buffer)
+{    
+    buffer BufferCopy = AllocateBuffer(Buffer->Size);
+    memcpy(BufferCopy.Bytes, Buffer->Bytes, Buffer->Size);
+    //snprintf(CategoryKeyBuffer, BufferSize, "%s", CategoryContext->Key);
     
-    return result;
+    // The targeted JsonValue will ownn this Buffer and will be responsible of releasing it from memory.
+    return BufferCopy;
 }
 
 function_global json_category MakeJsonCategory(category_context *CategoryContext, json_value CategoryValue, enum_json_value_type Type)
 {
     json_category result;
-    u32 BufferSize = sizeof(char) * CategoryContext->Size + 1;
-    char* CategoryKeyBuffer = (char*)malloc(BufferSize);
-    //snprintf(CategoryKeyBuffer, BufferSize, "%s", CategoryContext->Key);
-    memset(CategoryKeyBuffer, '\0', CategoryContext->Size + 1);
-    strncpy(CategoryKeyBuffer, CategoryContext->Key, CategoryContext->Size);
+    result.Key  = AllocateBufferCopyAsString(&CategoryContext->Key);
     
+    //strncpy(CategoryKeyBuffer, CategoryContext->Key, CategoryContext->Size);    
     
-    result.Key = CategoryKeyBuffer;
     result.Value = CategoryValue;
     result.ValueType = Type;
     
-    ResetBuffer(CategoryContext->Key, &CategoryContext->Size);
-    
+    ResetBuffer(&CategoryContext->Key);
+  
     return result;
 }
 
-function_global void PushChar(char V, char *Buffer, u32& Size)
+function_global void PushChar(char V, buffer *Buffer)
 {
-    Buffer[Size++] = V;
+    Buffer->Bytes[Buffer->Size++] = (u8)V;
 }
 
-function_global void EvaluateCategory(json_category *Category, char *TempBuffer, u32 *TempBufferSize)
+function_global void EvaluateCategory(json_category *Category, buffer *TempBuffer)
 {
     if(Category->ValueType == enum_json_value_type::type_None)
     {
-        ResetBuffer(TempBuffer, TempBufferSize);
+        ResetBuffer(TempBuffer);
         return;
     }
     
     if(Category->ValueType == enum_json_value_type::type_String)
     {
-        Category->Value.String = MakeBufferCopy(TempBuffer, *TempBufferSize);
+        Category->Value.String = AllocateBufferCopyAsString(TempBuffer);
     }
-    else if((*TempBufferSize > 0) && strncmp(TempBuffer, "true", *TempBufferSize) == 0)
+    else if((TempBuffer->Size > 0) && strncmp((char*)TempBuffer->Bytes, "true", TempBuffer->Size) == 0)
     {
         Category->ValueType = enum_json_value_type::type_Bool;
         Category->Value.Bool = true;
     }
-    else if((*TempBufferSize > 0) && strncmp(TempBuffer, "false", *TempBufferSize) == 0)
+    else if((TempBuffer->Size > 0) && strncmp((char*)TempBuffer->Bytes, "false", TempBuffer->Size) == 0)
     {
         Category->ValueType = enum_json_value_type::type_Bool;
         Category->Value.Bool = false;
@@ -337,16 +348,16 @@ function_global void EvaluateCategory(json_category *Category, char *TempBuffer,
     else if(Category->ValueType == enum_json_value_type::type_Number)
     {
         Category->ValueType = enum_json_value_type::type_Number;
-        Category->Value.Number = strtod(TempBuffer, NULL);
+        Category->Value.Number = strtod((char*)TempBuffer->Bytes, NULL);
     }
     
-    ResetBuffer(TempBuffer, TempBufferSize);
+    ResetBuffer(TempBuffer);
 }
 
 
-function_global void EvaluateArrayValue(u16 Flags, enum_json_value_type *Type, char* TempBuffer, u32 TempBufferSize)
+function_global void EvaluateArrayValue(u16 Flags, enum_json_value_type *Type, buffer *TempBuffer)
 {
-    if((strncmp(TempBuffer, "true", TempBufferSize) == 0) || (strncmp(TempBuffer, "false", TempBufferSize) == 0))
+    if((strncmp((char*)TempBuffer->Bytes, "true", TempBuffer->Size) == 0) || (strncmp((char*)TempBuffer->Bytes, "false", TempBuffer->Size) == 0))
     {
         *Type = type_Bool;
     }
@@ -357,6 +368,7 @@ function_global void EvaluateArrayValue(u16 Flags, enum_json_value_type *Type, c
     }
     // String type is checked when we parse the double quote
 }
+
 
 
 ////////////////////////////////////
@@ -372,36 +384,9 @@ struct json_object
     json_object(const char* FileName)
     {
         PROFILE_FUNCTION();
-        u32 BufferSize = 0;
-        char* Buffer = nullptr;                
-        FILE* file = nullptr;                        
-        file =  fopen(FileName, "rb");
-        
-        if(!file)
-        {
-            fprintf(stderr, "Could not open the JSON file...");
-            return;
-        }
-        
-        
-        // TODO Wrap the buffer logic inside a class called "buffer".
-        fseek(file, 0, SEEK_END);
-        BufferSize = ftell(file);
-        rewind(file);
-        Buffer = MakeBuffer(BufferSize);
-        
-        { 
-            {
-                
-                // Get the file size;
-                fread(Buffer, sizeof(char), BufferSize, file);
-            }
-            
-            fclose(file);
-        }
-        
-        Name = FileName;        
-        ParseBuffer(Buffer, BufferSize, 0);        
+        buffer Buffer = ReadFile(FileName);
+
+        ParseBuffer(&Buffer, 0);        
     }
     
     ~json_object()
@@ -416,33 +401,75 @@ struct json_object
         Categories = nullptr;
     }
     
+      
+     buffer ReadFile(const char* FileName)
+    {
+        buffer Result = {};
+        
+        FILE* file = nullptr;                        
+        file =  fopen(FileName, "rb");
+        
+        if(!file)
+        {
+            fprintf(stderr, "Could not open the JSON file...");
+            return { };
+        }
+        
+        
+        // TODO Wrap the buffer logic inside a class called "buffer".
+        
+#if _WIN32
+        struct _stat64 Stat;
+        _stat64(FileName, &Stat);
+#else
+        struct stat Stat;
+        stat(FileName, &Stat);
+#endif        
+        Result.Size = Stat.st_size;        
+        Result = AllocateBuffer(Result.Size);
+        
+        {
+            {
+                
+                // Get the file size;
+                fread(Result.Bytes, sizeof(u8), Result.Size, file);
+            }
+            
+            fclose(file);
+        }
+        
+        Name = FileName;        
+        
+        return Result;
+    }
     
-    u32 ParseBuffer(const char* Buffer, u32 BufferSize, u32 FirstIndex = 0)
+    u32 ParseBuffer(buffer *Buffer, u32 FirstIndex = 0)
     {
         PROFILE_FUNCTION();
         u32 ReadChars = 0;
         u16 Flags = 0;
         
         // TEMP DATA
-        char TempBuffer[256];
-        memset(TempBuffer, '\0', sizeof(TempBuffer));
+        u8 TempBytes[256];
+        memset(TempBytes, '\0', sizeof(TempBytes));
+        buffer TempBuffer = {};
         
-        temp_array_data JsonArrayData;
+        TempBuffer.Bytes = TempBytes;
+        TempBuffer.Size = 0;               
         
-        
+        temp_array_data JsonArrayData;                
         bool bTempDataFree = false;
         
         u8 InitialTempData = 100;
         u32 CurrentTempDataBufferSize = 0;
         
         
-        json_category TempCategory;
-        u32 TempBufferSize = 0;
-        for(u32 Index = FirstIndex; Index < BufferSize; ++Index)
+        json_category TempCategory = {};
+        for(u32 Index = FirstIndex; Index < Buffer->Size; ++Index)
         {
             PROFILE_BLOCK("Parsing Buffer Reading");
             ++ReadChars;
-            char BufferChar = Buffer[Index];
+            char BufferChar = (char)Buffer->Bytes[Index];
             enum_json_token Token = GetToken(BufferChar);
             
             if(Token == enum_json_token::token_Blank)
@@ -465,7 +492,7 @@ struct json_object
                     {
                         PROFILE_BLOCK("Open Braces - SubCategory Creation")
                             // Adding another Json as a subcategory
-                            if(TempCategory.Key)
+                            if(TempCategory.Key.Size)
                         {
                             TempCategory.ValueType = enum_json_value_type::type_Json;
                         }
@@ -479,7 +506,7 @@ struct json_object
                         //new (SubJson) json_object();
                         
                         
-                        u32 SubJsonReadChars = SubJson->ParseBuffer(Buffer, BufferSize, Index + 1);
+                        u32 SubJsonReadChars = SubJson->ParseBuffer(Buffer, Index + 1);
                         Index += SubJsonReadChars;
                         TempCategory.Value.Json = SubJson;
                         PushJsonCategory(&TempCategory);
@@ -502,7 +529,7 @@ struct json_object
                         JsonArrayData.Type = type_Json;
                         json_object* json = new json_object();
                         JsonArrayData.ArrayJsonContext.Array.JsonObjectArray[JsonArrayData.Size++] = json;
-                        u32 SubJsonReadChars = json->ParseBuffer(Buffer, BufferSize, Index + 1);
+                        u32 SubJsonReadChars = json->ParseBuffer(Buffer, Index + 1);
                         Index += SubJsonReadChars;
                     }
                 }
@@ -511,10 +538,10 @@ struct json_object
             {
                 PROFILE_BLOCK("Double Quote")
                     // We have something in the buffer. Finished the String Value
-                    if(TempBufferSize > 0)
+                    if(TempBuffer.Size > 0)
                 {
                     SetFlag(Flags, enum_parser_flags::flag_String_Opened, false);
-                    if(TempCategory.Key)
+                    if(TempCategory.Key.Size)
                     {
                         // Array Check
                         if(!CheckFlag(Flags, enum_parser_flags::flag_Array_Opened))
@@ -532,10 +559,9 @@ struct json_object
                         // Category Buffer
                         category_context CategoryContext;
                         CategoryContext.Key = TempBuffer;
-                        CategoryContext.Size = TempBufferSize;
                         
                         TempCategory = MakeJsonCategory(&CategoryContext, json_value(), enum_json_value_type::type_None);
-                        ResetBuffer(TempBuffer, &TempBufferSize);
+                        ResetBuffer(&TempBuffer);
                     }
                     
                 }
@@ -554,7 +580,7 @@ struct json_object
             else if(Token == enum_json_token::token_LetterOrNumber)
             {
                 PROFILE_BLOCK("Letter Or Number")
-                    PushChar(BufferChar, TempBuffer, TempBufferSize);
+                    PushChar(BufferChar, &TempBuffer);
                 
                 // We are doing this all the time we find a letter or number, maybe figure out a way of set this once.FLAG?
                 if(TempCategory.ValueType == type_None && !CheckFlag(Flags, enum_parser_flags::flag_Array_Opened) && (!CheckFlag(Flags, enum_parser_flags::flag_String_Opened)))
@@ -566,7 +592,7 @@ struct json_object
             else if((!CheckFlag(Flags, enum_parser_flags::flag_Array_Opened)) && (Token == enum_json_token::token_Coma || Token == enum_json_token::token_CloseBraces))
             {
                 // CHANGING THE CATEGORY
-                EvaluateCategory(&TempCategory, TempBuffer, &TempBufferSize);
+                EvaluateCategory(&TempCategory, &TempBuffer);
                 PushJsonCategory(&TempCategory);
                 
                 if (Token == token_CloseBraces)
@@ -587,7 +613,7 @@ struct json_object
                     SetFlag(Flags, enum_parser_flags::flag_Array_Opened, false);
                 
                 // PUSH THE LAST VALUE
-                PushArrayValue(&JsonArrayData, Flags, TempBuffer, &TempBufferSize);
+                PushArrayValue(&JsonArrayData, Flags, &TempBuffer);
                 
                 // PUSH THE ARRAY TO THE JSON
                 PushArray(&TempCategory, &JsonArrayData);
@@ -598,7 +624,7 @@ struct json_object
                     // we are reading through the Array
                     if(CheckFlag(Flags, enum_parser_flags::flag_Array_Opened))
                 {
-                    PushArrayValue(&JsonArrayData, Flags, TempBuffer, &TempBufferSize);
+                    PushArrayValue(&JsonArrayData, Flags, &TempBuffer);
                 }
             }
         }
@@ -631,14 +657,14 @@ struct json_object
             json_value V = Category.Value;
             if(Category.ValueType == enum_json_value_type::type_Json)
             {
-                printf("%s :\n", Category.Key);
+                printf("%s :\n", (char*)Category.Key.Bytes);
                 printf("{ \n");
                 V.Json->Print();
                 printf("} \n");
             }
             else if(Category.ValueType == enum_json_value_type::type_Array)
             {
-                printf("%s: \n", Category.Key);
+                printf("%s: \n", (char*)Category.Key.Bytes);
                 printf("[ ");
                 json_array& ArrayRef = Category.Value.JsonArray;
                 
@@ -727,7 +753,7 @@ struct json_object
                 
                 if(Category.ValueType == enum_json_value_type::type_String)
                 {
-                    strncpy(Buffer, V.String, strlen(V.String));
+                    strncpy(Buffer, (char*)V.String.Bytes, V.String.Size);
                 }
                 else if(Category.ValueType == enum_json_value_type::type_Number)
                 {
@@ -745,7 +771,7 @@ struct json_object
                     }
                     
                 }
-                printf("%s : %s \n", Category.Key, Buffer);
+                printf("%s : %s \n", (char*)Category.Key.Bytes, Buffer);
             }
             
         }
@@ -754,12 +780,12 @@ struct json_object
     
     
     private:
-    void PushArrayValue(temp_array_data* ArrayData, u16 Flags, char* TempBuffer, u32* TempBufferSize)
+    void PushArrayValue(temp_array_data* ArrayData, u16 Flags, buffer *TempBuffer)
     {
         u8 InitialTempData = 100;
         if (ArrayData->Type == type_None)
         {
-            EvaluateArrayValue(Flags, &ArrayData->Type, TempBuffer, *TempBufferSize);
+            EvaluateArrayValue(Flags, &ArrayData->Type, TempBuffer);
         }
         
         switch(ArrayData->Type)
@@ -780,7 +806,7 @@ struct json_object
                     ArrayData->ArrayNumberContxt.Array.NumberArray = Array;
                 }
                 
-                Array[ArrayData->Size++] = atoll(TempBuffer);
+                Array[ArrayData->Size++] = atoll((char*)TempBuffer->Bytes);
             }
             break;
             
@@ -799,7 +825,7 @@ struct json_object
                 }
                 
                 bool* BoolArray =ArrayData->ArrayBoolContext.Array.BoolArray;
-                bool bValueToAdd = !(strncmp(TempBuffer, "false", *TempBufferSize) == 0);
+                bool bValueToAdd = !(strncmp((char*)TempBuffer->Bytes, "false", TempBuffer->Size) == 0);
                 BoolArray[ArrayData->Size++] = bValueToAdd;
             }
             break;
@@ -820,9 +846,9 @@ struct json_object
                 
                 char** Array = ArrayData->ArrayStringContext.Array.StringArray;
                 
-                char* String = (char*)malloc(sizeof(char) * (*TempBufferSize) + 1);
-                memset(String, '\0', *TempBufferSize + 1);
-                memcpy(String, TempBuffer, *TempBufferSize);
+                char* String = (char*)malloc(sizeof(char) * (TempBuffer->Size + 1));
+                memset(String, '\0', TempBuffer->Size + 1);
+                memcpy(String, (char*)TempBuffer->Bytes, TempBuffer->Size);
                 Array[ArrayData->Size++] = String;
             }
             break;
@@ -836,7 +862,7 @@ struct json_object
             default: break;
         }
         
-        ResetBuffer(TempBuffer, TempBufferSize);
+        ResetBuffer(TempBuffer);
     }
     
     void PushArray(json_category* TempCategory, temp_array_data* ArrayData)

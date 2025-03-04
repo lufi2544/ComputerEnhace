@@ -1,4 +1,8 @@
 
+
+// @(juanes.rayo): Original implementation made by me as part of the course Computer Enhace by Casey Muratori. Solution for this section is totally different than this one.
+// In my implementation I create a JSON structure which is easy to find after parsing, so we can easily iterate over the found elements.
+
 #include "sys/stat.h"
 
 enum enum_json_token
@@ -69,6 +73,7 @@ enum enum_json_value_type
     type_Array,
 };
 
+// Arrays of different types
 union json_array_value
 {
     char** StringArray;
@@ -101,11 +106,8 @@ struct json_category
     
     void Release()
     {
-        if(Key.Bytes)
-        {
-            free(Key.Bytes);
-            Key = {};            
-        }
+        FreeBuffer(&Key);
+        
         if (ValueType == type_String)
         {
             free(Value.String.Bytes);
@@ -183,7 +185,6 @@ struct temp_array_data
     enum_json_value_type Type = type_None;
     u32 Size = 0;
 };
-
 
 
 /*
@@ -364,8 +365,31 @@ struct json_object
         Categories = nullptr;
     }
     
+    
+    json_value 
+    GetValue(buffer CategoryName, bool& bFound)
+    {
+        bFound = false;
+        if(!IsValid(CategoryName))
+        {
+            return { };           
+        }        
+        
+        for(u32 CategoryIndex = 0; CategoryIndex < Size; ++CategoryIndex)
+        {
+            json_category* Category = Categories + CategoryIndex;
+            if(IsEqual(CategoryName, Category->Key))
+            {
+                bFound = true;
+                return Category->Value;                
+            }
+        }
+        
+        return { };
+    }   
       
-     buffer ReadFile(const char* FileName)
+    buffer 
+    ReadFile(const char* FileName)
     {
         buffer Result = {};
         

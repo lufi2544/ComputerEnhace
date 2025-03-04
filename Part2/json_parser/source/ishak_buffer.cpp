@@ -5,7 +5,7 @@
 // -------- Buffer ---------
 //--------------------------
 
-#define CONSTANT_STRING(String) {sizeof(String) - 1, (u8*)(String)}
+#define CONSTANT_STRING(String) {(u8*)(String), sizeof(String) - 1}
 
 struct buffer
 {
@@ -13,6 +13,12 @@ struct buffer
     u64 Size;
 };
 
+
+function_global bool
+IsValid(buffer Buffer)
+{    
+    return Buffer.Size > 0 && Buffer.Bytes != NULL;                
+}
 
 function_global buffer
 AllocateBuffer(s64 Size)
@@ -43,6 +49,25 @@ AllocateBufferCopyAsString(buffer *Buffer)
     
     // The targeted JsonValue will ownn this Buffer and will be responsible of releasing it from memory.
     return BufferCopy;
+}
+
+function_global bool
+IsEqual(buffer A, buffer B)
+{
+    if(A.Size != B.Size)
+    {
+        return false;
+    }
+    
+    for(u64 Index = 0; Index < A.Size; ++Index)
+    {
+        if(A.Bytes[Index] != B.Bytes[Index])
+        {
+            return false;
+        }
+    }
+    
+    return true;
 }
 
 function_global void 

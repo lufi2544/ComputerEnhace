@@ -23,7 +23,6 @@ int main(int ArgsCount,char** Args)
     profiler::BeginProfiling();
     
     json_object json("input.json");
-    json.Print();
     
     haversine_pair* HaversineArray = nullptr;        
     {

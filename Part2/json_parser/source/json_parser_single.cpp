@@ -417,8 +417,14 @@ struct json_object
         
         {
             {
+                // Reading the bytes from the opened file.
                 
-                // Get the file size;
+                // (juanes.rayo): we could also do: fread(Result.Bytes, Result.Count, 1, file);
+                
+                // so through this way, we can allocate just 1 buffer with the size of the entire file
+                // this is fine as the out pointers is going to point to the first element anyways
+                // and we are going to advance the reading pointer by u8 bytes.
+               
                 fread(Result.Bytes, sizeof(u8), Result.Size, file);
             }
             

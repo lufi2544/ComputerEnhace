@@ -7,6 +7,7 @@
 #include "profiler_includes_single.h"
 
 //cpp
+#include "ishak_buffer.cpp"
 #include "json_parser_single.cpp"
 
 

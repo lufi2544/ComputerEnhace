@@ -25,7 +25,7 @@ enum enum_parser_flags : u16
     flag_Open = 0,
     flag_completed = 1,
     flag_CategoryOpen = 2,
-    flag_sub_CategoryOpen = 3, /*  when a category is opened and we are writing some categories on the inside. */
+    flag_sub_CategoryOpen = 3, /*  when a category is opened andx we are writing some categories on the inside. */
     flag_ValueOpen = 4,
     flag_ValuePushed = 5,
     flag_String_Opened = 6,
@@ -417,6 +417,7 @@ struct json_object
         
         {
             {
+                PROFILE_BLOCK_BANDWITH("Reading file", Result.Size)
                 // Reading the bytes from the opened file.
                 
                 // (juanes.rayo): we could also do: fread(Result.Bytes, Result.Count, 1, file);
@@ -425,7 +426,11 @@ struct json_object
                 // this is fine as the out pointers is going to point to the first element anyways
                 // and we are going to advance the reading pointer by u8 bytes.
                
-                fread(Result.Bytes, sizeof(u8), Result.Size, file);
+                if(!fread(Result.Bytes, sizeof(u8), Result.Size, file))
+                {
+                    fprintf(stderr, "ERROR: Unable to read the file %s. \n", FileName);
+                    FreeBuffer(&Result);
+                }
             }
             
             fclose(file);

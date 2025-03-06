@@ -93,7 +93,15 @@ namespace profiler {
         
         if(Anchor->bIsBlock)
         {            
-            printf("   Block %s[%llu]: %.4fms (%.2f%%) CPU: %llu ", Anchor->Label, Anchor->HitCount, ElapsedMiliseconds, Percent, CPUElapsed);            
+            // Meassured with BandWidth
+            if(Anchor->ProcessByteCount)
+            {
+                printf("   BW_Block %s[%llu]: %.4fms (%.2f%%) CPU: %llu ", Anchor->Label, Anchor->HitCount, ElapsedMiliseconds, Percent, CPUElapsed);                            
+            }
+            else
+            {                
+                printf("   Block %s[%llu]: %.4fms (%.2f%%) CPU: %llu ", Anchor->Label, Anchor->HitCount, ElapsedMiliseconds, Percent, CPUElapsed);                            
+            }
         }
         else
         {
@@ -138,11 +146,12 @@ namespace profiler {
         }
     }
     
-#define PROFILE_BLOCK_BANDWITH(Name, Value,  ByteCount) profiler::profile_block NameConcat(Block, __LINE__)(Name, __COUNTER__ + 1, Value, ByteCount);
+#define PROFILE_BLOCK_BANDWITH_(Name, Value,  ByteCount) profiler::profile_block NameConcat(Block, __LINE__)(Name, __COUNTER__ + 1, Value, ByteCount);
     
-#define PROFILE_BLOCK(Name) PROFILE_BLOCK_BANDWITH(Name, true, 0)
-#define PROFILE_FUNCTION()  PROFILE_BLOCK_BANDWITH(__func__, false, 0)
+#define PROFILE_BLOCK(Name) PROFILE_BLOCK_BANDWITH_(Name, true, 0)
+#define PROFILE_FUNCTION()  PROFILE_BLOCK_BANDWITH_(__func__, false, 0)
 #define PROFILING_ASSERT_CHECK() static_assert(__COUNTER__  <= (ArrayCount(profiler::GlobalProfilerAnchors)), "Number of ProfilePoints Exceeded...");
+#define PROFILE_BLOCK_BANDWITH(Name, ByteCount) PROFILE_BLOCK_BANDWITH_(Name, true, ByteCount)
     
     
 #else
@@ -151,6 +160,7 @@ namespace profiler {
 #define PrintAnchorsTime(...) 
     
 #define PROFILE_BLOCK_BANDWITH(...) 
+#define PROFILE_BLOCK_BANDWITH_(...) 
 #define PROFILE_BLOCK(...)
 #define PROFILE_FUNCTION(...)
 #define PROFILING_ASSERT_CHECK()

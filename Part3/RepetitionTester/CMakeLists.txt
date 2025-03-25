@@ -30,4 +30,5 @@ add_executable(RepetitionTester ${SOURCES})
 target_include_directories(RepetitionTester PRIVATE 
  ${CMAKE_CURRENT_SOURCE_DIR}/source, 
  ${CMAKE_CURRENT_SOURCE_DIR}/../../
+ ${CMAKE_CURRENT_SOURCE_DIR}/../../Part2/profiling/source
 )

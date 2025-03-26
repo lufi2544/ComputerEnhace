@@ -12,16 +12,18 @@ struct repetition_tester
 	
 	bool b_is_testing;
 	u8 test_time;
-	char* name;
+	const char* name;
 	u64 bytes_to_test;
 	u64 initial_time;
 	u64 scope_time;
 	f64 current_time;
 	f64 best_time;
+	f64 worst_time;
+	u64 cpu_frequency;
 };
 
 internal void
-InitTester(repetition_tester *tester, u8 test_time, u64 Bytes, char* const name)
+InitTester(repetition_tester *tester, u8 test_time, u64 Bytes, const char* name)
 {
 	tester->test_time = test_time;
 	tester->name = name;
@@ -50,13 +52,19 @@ EndTimer(repetition_tester *tester)
 	
 	if(time_passed_ms < tester->best_time || tester->best_time == 0)
 	{
-		printf("Detected a better time %s prev: %.8f now: %.8f \n ",tester->name, tester->best_time, time_passed_ms);
+		//printf("Detected a better time %s prev: %.8f now: %.8f \n ",tester->name, tester->best_time, time_passed_ms);
 		tester->best_time = time_passed_ms;
+	}
+	
+	if (time_passed_ms > tester->worst_time)
+	{
+		//printf("Detected a worst time: %s prev: %.8f now: %.8f \n", tester->name, tester->worst_time, time_passed_ms);
+		tester->worst_time = time_passed_ms;
 	}
 	
 	tester->current_time += time_passed_ms;
 	
-	printf("Total time passed: %.8f \n", tester->current_time / 1000);
+	//printf("Total time passed: %.8f \n", tester->current_time / 1000);
 	// Check if we should keep testing
 	if (tester->current_time >= (f64)tester->test_time * 1000)
 	{
@@ -66,3 +74,20 @@ EndTimer(repetition_tester *tester)
 
 
 
+internal void 
+PrintStatus(repetition_tester *_tester)
+{
+	f64 gb_tested = (f64)_tester->bytes_to_test / (1024.0 * 1024.0 * 1024.0);
+	f64 best_time_seconds = (f64)_tester->best_time / 1000.0;  // Convert ms to seconds
+	f64 worst_time_seconds = (f64)_tester->worst_time / 1000.0;
+	
+	f64 gb_per_second_best = gb_tested / best_time_seconds;
+	f64 gb_per_second_worst = gb_tested / worst_time_seconds;
+	
+	// Debug Output
+	printf("GB: %.8f \n", gb_tested);
+	printf("===== Test %s time: %i s bytes: %llu =====\n", _tester->name, _tester->test_time, _tester->bytes_to_test);
+	printf("Best Time: %.8f sec, Bandwidth: %.8f GB/s \n", best_time_seconds, gb_per_second_best);
+	printf("Worst Time: %.8f sec, Bandwidth: %.8f GB/s \n", worst_time_seconds, gb_per_second_worst);
+	printf("================================== \n");
+}

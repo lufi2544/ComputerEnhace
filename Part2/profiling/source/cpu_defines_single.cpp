@@ -85,16 +85,16 @@ function_global u64 GetOSTimerFrequency()
 */
 function_global u64 ReadOSTimer()
 {
-    /*mach_timebase_info_data_t TimeBase;
+    mach_timebase_info_data_t TimeBase;
     mach_timebase_info(&TimeBase);
-
+	
     // Convert the timebase into nanoseconds per tick
-     auto a = (double)TimeBase.numer / (double)TimeBase.denom;
-
+	auto a = (double)TimeBase.numer / (double)TimeBase.denom;
+	
     int d = mach_absolute_time() * a;
-    return d;*/
+    return d;
     
-    return mach_absolute_time();
+    //return mach_absolute_time();
 }
 
 #else // TODO implement Linux

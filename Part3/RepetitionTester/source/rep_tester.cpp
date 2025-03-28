@@ -42,37 +42,35 @@ BeginTimer(repetition_tester *tester)
 internal void
 EndTimer(repetition_tester *tester)
 {
-	u64 new_time = ReadOSTimer();
-	u64 time = new_time - tester->scope_time;
+	// To be honest the time is not time, it is OS Timer Ticks.
+    u64 new_time = ReadOSTimer();
+    u64 time = new_time - tester->scope_time;
+    
+    u64 OSTimeStampCounterTimerFrequency = GetOSTimerFrequency();
+    
+    // Convert time to milliseconds
+    f64 time_passed_ms = ((f64)time / OSTimeStampCounterTimerFrequency) * 1000;
+    
+    // Update best and worst time
+    if (time_passed_ms < tester->best_time || tester->best_time == 0)
+    {
+        tester->best_time = time_passed_ms;
+    }
+    
+    if (time_passed_ms > tester->worst_time)
+    {
+        tester->worst_time = time_passed_ms;
+    }
 	
-	u64 OSTimeStampCounterTimerFrequency = GetOSTimerFrequency();
+    f64 total_time_elapsed =
+		((f64)(new_time - tester->initial_time) / OSTimeStampCounterTimerFrequency);
 	
-	// TODO convert this to ms and use it.
-	f64 time_passed_ms = ((f64)time / OSTimeStampCounterTimerFrequency) * 1000;
-	
-	if(time_passed_ms < tester->best_time || tester->best_time == 0)
-	{
-		//printf("Detected a better time %s prev: %.8f now: %.8f \n ",tester->name, tester->best_time, time_passed_ms);
-		tester->best_time = time_passed_ms;
-	}
-	
-	if (time_passed_ms > tester->worst_time)
-	{
-		//printf("Detected a worst time: %s prev: %.8f now: %.8f \n", tester->name, tester->worst_time, time_passed_ms);
-		tester->worst_time = time_passed_ms;
-	}
-	
-	tester->current_time += time_passed_ms;
-	
-	//printf("Total time passed: %.8f \n", tester->current_time / 1000);
-	// Check if we should keep testing
-	if (tester->current_time >= (f64)tester->test_time * 1000)
-	{
-		tester->b_is_testing = false;
-	}
+    // Stop testing if we exceed the desired test time
+    if (total_time_elapsed >= tester->test_time)
+    {
+        tester->b_is_testing = false;
+    }
 }
-
-
 
 internal void 
 PrintStatus(repetition_tester *_tester)
@@ -81,6 +79,7 @@ PrintStatus(repetition_tester *_tester)
 	f64 best_time_seconds = (f64)_tester->best_time / 1000.0;  // Convert ms to seconds
 	f64 worst_time_seconds = (f64)_tester->worst_time / 1000.0;
 	
+	printf("GB Tested %.4f", gb_tested);
 	f64 gb_per_second_best = gb_tested / best_time_seconds;
 	f64 gb_per_second_worst = gb_tested / worst_time_seconds;
 	

@@ -36,7 +36,7 @@ int main (int args_num, const char** args)
 #endif
 	
 	params.buff = AllocateBuffer(Stat.st_size);
-	InitTester(&tester, 5, params.buff.Size, "test_scope");
+	InitTester(&tester, 2, params.buff.Size, "test_scope");
 	tester.cpu_frequency = GetOSTimerFrequency();
 	while(tester.b_is_testing)
 	{

@@ -54,7 +54,6 @@ function_global u64 ReadOSTimer(void)
 */
 inline u64 ReadCPUTimer(void)
 {
-    
     u64 cntvct;
     //__asm__ volatile("mrs %0, cntvct_el0" : "=r"(cntvct));
     cntvct = mach_absolute_time();
@@ -66,7 +65,6 @@ inline u64 ReadCPUTimer(void)
 */
 function_global u64 GetOSTimerFrequency()
 {
-    
     /* __asm__ volatile("mrs %0, cntfrq_el0" : "=r"(cntvct));*/
     
     mach_timebase_info_data_t TimeBase;
@@ -85,7 +83,7 @@ function_global u64 GetOSTimerFrequency()
 */
 function_global u64 ReadOSTimer()
 {
-    mach_timebase_info_data_t TimeBase;
+    /*mach_timebase_info_data_t TimeBase;
     mach_timebase_info(&TimeBase);
 	
     // Convert the timebase into nanoseconds per tick
@@ -93,8 +91,8 @@ function_global u64 ReadOSTimer()
 	
     int d = mach_absolute_time() * a;
     return d;
-    
-    //return mach_absolute_time();
+    */
+    return mach_absolute_time();
 }
 
 #else // TODO implement Linux

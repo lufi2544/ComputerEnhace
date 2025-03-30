@@ -1,20 +1,23 @@
 #include "types.h"
 #include <cmath>
 
-f64 Square(f64 A)
+static f64
+Square(f64 A)
 {
     f64 Result = (A*A);
     return Result;
 }
 
-static f64 RadiansFromDegrees(f64 Degrees)
+static f64
+RadiansFromDegrees(f64 Degrees)
 {
     f64 Result = 0.01745329251994329577 * Degrees;
     return Result;
 }
 
 // NOTE(casey): EarthRadius is generally expected to be 6372.8
-f64 ReferenceHaversine(f64 X0, f64 Y0, f64 X1, f64 Y1, f64 EarthRadius)
+static f64
+ReferenceHaversine(f64 X0, f64 Y0, f64 X1, f64 Y1, f64 EarthRadius)
 {
     /* NOTE(casey): This is not meant to be a "good" way to calculate the Haversine distance.
        Instead, it attempts to follow, as closely as possible, the formula used in the real-world

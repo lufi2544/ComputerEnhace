@@ -1,14 +1,9 @@
 
-#include "types.h"
-#include <iostream>
-#include <random>
-#include <cstdio>
-#include "harvesine_formula.h"
-#include "profiling.h"
 
+#include <cstdio>
+#include <cstring>
 #define _CRT_SECURE_NO_WARNINGS
 #define U64Max  UINT64_MAX
-
 
 struct random_series
 {
@@ -62,7 +57,8 @@ Seed(u64 Value)
 	return Result;
 }
 
-static f64 RandomInRange(random_series* Series, f64 Min, f64 Max)
+static f64
+RandomInRange(random_series* Series, f64 Min, f64 Max)
 {
 	int a  = 0;
 	f64 t = (f64)RandomU64(Series) / (f64)U64Max;
@@ -75,7 +71,7 @@ static FILE*
 Open(u64 NumOfPairs, const char* Name, const char* Extension)
 {
 	char Temp[256];
-	sprintf(Temp, "data_%llu_%s.%s", NumOfPairs, Name, Extension);
+	snprintf(Temp,sizeof(Temp), "data_%llu_%s.%s", NumOfPairs, Name, Extension);
 	
 	FILE* File = std::fopen(Temp, "wb");
 	if(!File)
@@ -105,7 +101,8 @@ RandomDegree(random_series* Series, f64 Center, f64 Radius, f64 MaxAllowed)
 	return Result;
 }
 
-int mainProfiling(int ArgsCount,char** Args)
+static int
+mainProfiling(int ArgsCount,char** Args)
 {
     if(ArgsCount == 1)
     {
@@ -120,7 +117,7 @@ int mainProfiling(int ArgsCount,char** Args)
     for(int ArgsIndex = 1; ArgsIndex < ArgsCount; ++ArgsIndex)
     {
         char* Arg = Args[ArgsIndex];
-        u64 ArgAsNumber = std::atoll(Arg);
+        u64 ArgAsNumber = atoll(Arg);
         if(ArgsIndex == 1)
         {
             // Random Seed
@@ -221,6 +218,6 @@ int mainProfiling(int ArgsCount,char** Args)
 	fprintf(Json, "}");
 	fclose(Json);
     
-    std::cout << "Sum: " << Sum << std::endl;
+    printf("Sum %.4f", Sum );
 	return 0;
 }

@@ -16,6 +16,7 @@ struct read_params
 int main (int args_num, const char** args)
 {
 	static repetition_tester tester;
+    static repetition_tester tester1;
 	
 	//// Fread /////
 	read_params params;
@@ -36,19 +37,34 @@ int main (int args_num, const char** args)
 #endif
 	
 	params.buff = AllocateBuffer(Stat.st_size);
-	InitTester(&tester, 2, params.buff.Size, "test_scope");
+	InitTester(&tester, 10, params.buff.Size, "test_scope");
+    
 	tester.cpu_frequency = GetOSTimerFrequency();
 	while(tester.b_is_testing)
 	{
 		BeginTimer(&tester);
 		fread(params.buff.Bytes, sizeof(u8), params.buff.Size, file);
 		EndTimer(&tester);
-		
+		if(tester.times == 2)
+        {
+            PrintStatus(&tester);
+        }
 	}
-	
-	PrintStatus(&tester);
-	
-	fclose(file);
-	
-	return 0;
+    
+    InitTester(&tester1, 10, params.buff.Size, "test_scope");
+    
+    BeginTimer(&tester1);
+    fread(params.buff.Bytes, sizeof(u8), params.buff.Size, file);
+    EndTimer(&tester1);
+    
+    
+    
+    
+    
+    PrintStatus(&tester);
+    //PrintStatus(&tester1);
+    
+    fclose(file);
+    
+    return 0;
 };

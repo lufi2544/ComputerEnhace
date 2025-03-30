@@ -18,8 +18,13 @@ struct repetition_tester
 	u64 scope_time;
 	f64 current_time;
 	f64 best_time;
+	f64 best_time_ts;
 	f64 worst_time;
+	f64 worst_time_ts;
 	u64 cpu_frequency;
+    u64 times_best;
+    u64 times_worst;
+    u64 times;
 };
 
 internal void
@@ -42,6 +47,7 @@ BeginTimer(repetition_tester *tester)
 internal void
 EndTimer(repetition_tester *tester)
 {
+    tester->times++;
 	// To be honest the time is not time, it is OS Timer Ticks.
     u64 new_time = ReadOSTimer();
     u64 time = new_time - tester->scope_time;
@@ -55,11 +61,15 @@ EndTimer(repetition_tester *tester)
     if (time_passed_ms < tester->best_time || tester->best_time == 0)
     {
         tester->best_time = time_passed_ms;
+        tester->best_time_ts = time_passed_ms;
+        tester->times_best = tester->times;
     }
     
     if (time_passed_ms > tester->worst_time)
     {
         tester->worst_time = time_passed_ms;
+        tester->worst_time_ts = time_passed_ms;
+        tester->times_worst = tester->times;
     }
 	
     f64 total_time_elapsed =
@@ -70,6 +80,7 @@ EndTimer(repetition_tester *tester)
     {
         tester->b_is_testing = false;
     }
+    
 }
 
 internal void 
@@ -86,7 +97,7 @@ PrintStatus(repetition_tester *_tester)
 	// Debug Output
 	printf("GB: %.8f \n", gb_tested);
 	printf("===== Test %s time: %i s bytes: %llu =====\n", _tester->name, _tester->test_time, _tester->bytes_to_test);
-	printf("Best Time: %.8f sec, Bandwidth: %.8f GB/s \n", best_time_seconds, gb_per_second_best);
-	printf("Worst Time: %.8f sec, Bandwidth: %.8f GB/s \n", worst_time_seconds, gb_per_second_worst);
+	printf("Best Time: %.8f sec, ts: %.8f, Bandwidth: %.8f GB/s Times: %llu \n", best_time_seconds, _tester->best_time_ts / 1000, gb_per_second_best, _tester->times_best);
+	printf("Worst Time: %.8f sec, ts: %.8f Bandwidth: %.8f GB/s Times: %llu \n", worst_time_seconds, _tester->worst_time_ts / 1000,  gb_per_second_worst, _tester->times_worst);
 	printf("================================== \n");
 }

@@ -12,6 +12,21 @@ struct read_params
 	char const* file_name;
 };
 
+#include <mach/mach.h>
+
+void getPageFaults() {
+    task_events_info_data_t info;
+    mach_msg_type_number_t count = TASK_EVENTS_INFO_COUNT;
+    mach_port_t task = mach_task_self();
+    
+    if (task_info(task, TASK_EVENTS_INFO, (task_info_t)&info, &count) == KERN_SUCCESS) 
+    {
+        printf("Page faults : %i \n", info.faults);
+    } 
+    else 
+    {
+    }
+}
 
 int main (int args_num, const char** args)
 {
@@ -35,7 +50,8 @@ int main (int args_num, const char** args)
 	struct stat Stat;
 	stat(params.file_name, &Stat);
 #endif
-	
+	//66609763 - page faults with malloc in the repetition test
+    //275746 - page faults without malloc in the repetition test
 	params.buff = AllocateBuffer(Stat.st_size);
 	InitTester(&tester, 10, params.buff.Size, "test_scope");
     
@@ -51,18 +67,8 @@ int main (int args_num, const char** args)
         }
 	}
     
-    InitTester(&tester1, 10, params.buff.Size, "test_scope");
-    
-    BeginTimer(&tester1);
-    fread(params.buff.Bytes, sizeof(u8), params.buff.Size, file);
-    EndTimer(&tester1);
-    
-    
-    
-    
-    
+    getPageFaults();
     PrintStatus(&tester);
-    //PrintStatus(&tester1);
     
     fclose(file);
     

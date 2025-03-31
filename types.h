@@ -24,6 +24,6 @@ typedef double f64;
 #define global static
 #define local static
 #define function_global static
-#define internal static
+#define internal_f static
 
 #define ArrayCount(Array) sizeof(Array) / sizeof((Array)[0])

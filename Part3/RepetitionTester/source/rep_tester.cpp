@@ -27,7 +27,7 @@ struct repetition_tester
     u64 times;
 };
 
-internal void
+internal_f void
 InitTester(repetition_tester *tester, u8 test_time, u64 Bytes, const char* name)
 {
 	tester->test_time = test_time;
@@ -37,14 +37,14 @@ InitTester(repetition_tester *tester, u8 test_time, u64 Bytes, const char* name)
 	tester->initial_time = ReadOSTimer();
 }
 
-internal void
+internal_f void
 BeginTimer(repetition_tester *tester)
 {
 	tester->b_is_testing = true;
 	tester->scope_time = ReadOSTimer();
 }
 
-internal void
+internal_f void
 EndTimer(repetition_tester *tester)
 {
     tester->times++;
@@ -83,7 +83,7 @@ EndTimer(repetition_tester *tester)
     
 }
 
-internal void 
+internal_f void 
 PrintStatus(repetition_tester *_tester)
 {
 	f64 gb_tested = (f64)_tester->bytes_to_test / (1024.0 * 1024.0 * 1024.0);

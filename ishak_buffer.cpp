@@ -4,8 +4,8 @@
 //--------------------------
 // -------- Buffer ---------
 //--------------------------
-
 #define CONSTANT_STRING(String) {(u8*)(String), sizeof(String) - 1}
+
 
 struct buffer
 {
@@ -25,7 +25,9 @@ AllocateBuffer(s64 Size)
 {
     buffer Result = {};    
     u8* Bytes  = (u8*)malloc(sizeof(u8) * Size + 1);
-    memset(Bytes,'\0', Size + 1);
+    
+    // (ishak): getting page faults if we modify the memory here, for now this will be commented out.
+    //memset(Bytes,'\0', Size + 1);
     
     Result.Bytes = Bytes;
     Result.Size = Size;

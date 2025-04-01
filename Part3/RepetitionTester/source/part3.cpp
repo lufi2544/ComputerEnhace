@@ -37,8 +37,8 @@ int main (int args_num, const char** args)
 #endif
 	//66609763 - page faults with malloc in the repetition test
     //275746 - page faults without malloc in the repetition test
-	InitTester(&tester, 10, Stat.st_size, "test_scope");
 	params.buff = AllocateBuffer(Stat.st_size);
+	InitTester(&tester, 10, Stat.st_size, "test_scope");
     
 	tester.cpu_frequency = GetOSTimerFrequency();
 	while(tester.b_is_testing)

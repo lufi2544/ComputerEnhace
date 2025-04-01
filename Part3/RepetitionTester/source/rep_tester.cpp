@@ -12,6 +12,7 @@
 // multiple times and find the best time possible for that process
 /////////
 
+//ugh..
 struct repetition_tester
 {
 	repetition_tester() = default;
@@ -31,8 +32,16 @@ struct repetition_tester
     u64 times_best;
     u64 times_worst;
     u64 times;
+    
     u64 page_faults_start;
     u64 page_faults_hard_start;
+    u64 page_faults_begin_cycle;
+    u64 page_faults_hard_begin_cycle;
+    
+    u64 page_faults_start_best;
+    u64 page_faults_start_worst;
+    u64 page_faults_hard_start_best;
+    u64 page_faults_hard_start_worst;
 };
 
 
@@ -53,8 +62,6 @@ void get_page_faults(u64 *o_page_faults, u64 *o_page_faults_hard)
         *o_page_faults = 0;
         *o_page_faults_hard = 0;
     }
-    
-    
 }
 
 
@@ -74,6 +81,7 @@ BeginTimer(repetition_tester *tester)
 {
 	tester->b_is_testing = true;
 	tester->scope_time = ReadOSTimer();
+    get_page_faults(&tester->page_faults_begin_cycle, &tester->page_faults_hard_begin_cycle);
 }
 
 internal_f void
@@ -89,12 +97,16 @@ EndTimer(repetition_tester *tester)
     // Convert time to milliseconds
     f64 time_passed_ms = ((f64)time / OSTimeStampCounterTimerFrequency) * 1000;
     
+    u64 page, hard;
+    get_page_faults(&page, &hard);
     // Update best and worst time
     if (time_passed_ms < tester->best_time || tester->best_time == 0)
     {
         tester->best_time = time_passed_ms;
         tester->best_time_ts = time_passed_ms;
         tester->times_best = tester->times;
+        tester->page_faults_start_best = page - tester->page_faults_begin_cycle;
+        tester->page_faults_hard_start_best = hard - tester->page_faults_hard_begin_cycle;
     }
     
     if (time_passed_ms > tester->worst_time)
@@ -102,6 +114,8 @@ EndTimer(repetition_tester *tester)
         tester->worst_time = time_passed_ms;
         tester->worst_time_ts = time_passed_ms;
         tester->times_worst = tester->times;
+        tester->page_faults_start_worst = page - tester->page_faults_begin_cycle;
+        tester->page_faults_hard_start_worst = hard - tester->page_faults_hard_begin_cycle;
     }
 	
     f64 total_time_elapsed =
@@ -125,12 +139,16 @@ PrintStatus(repetition_tester *_tester)
 	printf("GB Tested %.4f", gb_tested);
 	f64 gb_per_second_best = gb_tested / best_time_seconds;
 	f64 gb_per_second_worst = gb_tested / worst_time_seconds;
+    
+    f64 kb_per_fault_best = ((f64)(gb_tested * 1024 * 1024)) / _tester->page_faults_start_best;
+    f64 kb_per_fault_worst = ((f64)(gb_tested * 1024 * 1024)) / _tester->page_faults_start_worst;
+    
 	
 	// Debug Output
 	printf("GB: %.8f \n", gb_tested);
 	printf("===== Test %s time: %i s bytes: %llu =====\n", _tester->name, _tester->test_time, _tester->bytes_to_test);
-	printf("Best Time: %.8f sec, ts: %.8f, Bandwidth: %.8f GB/s Times: %llu \n", best_time_seconds, _tester->best_time_ts / 1000, gb_per_second_best, _tester->times_best);
-	printf("Worst Time: %.8f sec, ts: %.8f Bandwidth: %.8f GB/s Times: %llu \n", worst_time_seconds, _tester->worst_time_ts / 1000,  gb_per_second_worst, _tester->times_worst);
+	printf("Best Time: %.8f sec, ts: %.8f, Bandwidth: %.8f GB/s, Times: %llu, Kb/Page Fault %.4f \n", best_time_seconds, _tester->best_time_ts / 1000, gb_per_second_best, _tester->times_best, kb_per_fault_best);
+	printf("Worst Time: %.8f sec, ts: %.8f,  Bandwidth: %.8f GB/s,  Times: %llu,  Kb/Page Fault %.4f \n", worst_time_seconds, _tester->worst_time_ts / 1000,  gb_per_second_worst, _tester->times_worst, kb_per_fault_worst);
     
     u64 page_faults = 0; 
     u64 page_faults_hard = 0;

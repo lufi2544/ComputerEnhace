@@ -1,6 +1,12 @@
 
 #include "cpu_defines_single.cpp"
 
+#ifdef __APPLE__
+#include <mach/mach.h>
+#endif // __APPLE__
+
+#include <unistd.h>
+
 //////////
 //The intention of this object is to test different functionalities 
 // multiple times and find the best time possible for that process
@@ -25,7 +31,32 @@ struct repetition_tester
     u64 times_best;
     u64 times_worst;
     u64 times;
+    u64 page_faults_start;
+    u64 page_faults_hard_start;
 };
+
+
+internal_f 
+void get_page_faults(u64 *o_page_faults, u64 *o_page_faults_hard)
+{
+    task_events_info_data_t info;
+    mach_msg_type_number_t count = TASK_EVENTS_INFO_COUNT;
+    mach_port_t task = mach_task_self();
+    
+    if (task_info(task, TASK_EVENTS_INFO, (task_info_t)&info, &count) == KERN_SUCCESS) 
+    {
+        *o_page_faults = info.faults;
+        *o_page_faults_hard = info.pageins;
+    }
+    else 
+    {
+        *o_page_faults = 0;
+        *o_page_faults_hard = 0;
+    }
+    
+    
+}
+
 
 internal_f void
 InitTester(repetition_tester *tester, u8 test_time, u64 Bytes, const char* name)
@@ -35,6 +66,7 @@ InitTester(repetition_tester *tester, u8 test_time, u64 Bytes, const char* name)
 	tester->bytes_to_test = Bytes;
 	tester->b_is_testing = true;
 	tester->initial_time = ReadOSTimer();
+    get_page_faults(&tester->page_faults_start, &tester->page_faults_hard_start);
 }
 
 internal_f void
@@ -99,5 +131,10 @@ PrintStatus(repetition_tester *_tester)
 	printf("===== Test %s time: %i s bytes: %llu =====\n", _tester->name, _tester->test_time, _tester->bytes_to_test);
 	printf("Best Time: %.8f sec, ts: %.8f, Bandwidth: %.8f GB/s Times: %llu \n", best_time_seconds, _tester->best_time_ts / 1000, gb_per_second_best, _tester->times_best);
 	printf("Worst Time: %.8f sec, ts: %.8f Bandwidth: %.8f GB/s Times: %llu \n", worst_time_seconds, _tester->worst_time_ts / 1000,  gb_per_second_worst, _tester->times_worst);
+    
+    u64 page_faults = 0; 
+    u64 page_faults_hard = 0;
+    get_page_faults(&page_faults, &page_faults_hard);
+	printf("Memory Page Size: %i Kb, Page faults: %llu , Page faults hard %llu \n", getpagesize() / 1024, page_faults - _tester->page_faults_start, page_faults_hard - _tester->page_faults_hard_start);
 	printf("================================== \n");
 }

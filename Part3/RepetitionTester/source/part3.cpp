@@ -12,27 +12,12 @@ struct read_params
 	char const* file_name;
 };
 
-#include <mach/mach.h>
-
-void getPageFaults() {
-    task_events_info_data_t info;
-    mach_msg_type_number_t count = TASK_EVENTS_INFO_COUNT;
-    mach_port_t task = mach_task_self();
-    
-    if (task_info(task, TASK_EVENTS_INFO, (task_info_t)&info, &count) == KERN_SUCCESS) 
-    {
-        printf("Page faults : %i \n", info.faults);
-    } 
-    else 
-    {
-    }
-}
-
 int main (int args_num, const char** args)
 {
 	static repetition_tester tester;
     static repetition_tester tester1;
 	
+    
 	//// Fread /////
 	read_params params;
 	params.file_name = "input.json";
@@ -52,8 +37,8 @@ int main (int args_num, const char** args)
 #endif
 	//66609763 - page faults with malloc in the repetition test
     //275746 - page faults without malloc in the repetition test
+	InitTester(&tester, 10, Stat.st_size, "test_scope");
 	params.buff = AllocateBuffer(Stat.st_size);
-	InitTester(&tester, 10, params.buff.Size, "test_scope");
     
 	tester.cpu_frequency = GetOSTimerFrequency();
 	while(tester.b_is_testing)
@@ -63,14 +48,13 @@ int main (int args_num, const char** args)
 		EndTimer(&tester);
 		if(tester.times == 2)
         {
-            PrintStatus(&tester);
+            //PrintStatus(&tester);
         }
 	}
     
-    getPageFaults();
     PrintStatus(&tester);
     
     fclose(file);
-    
     return 0;
+    
 };

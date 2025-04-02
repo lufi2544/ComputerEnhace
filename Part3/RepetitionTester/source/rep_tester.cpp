@@ -3,6 +3,7 @@
 
 #ifdef __APPLE__
 #include <mach/mach.h>
+#include <sys/mman.h>
 #endif // __APPLE__
 
 #include <unistd.h>
@@ -44,6 +45,7 @@ struct repetition_tester
     u64 page_faults_hard_start_worst;
 };
 
+#ifdef __APPLE__
 
 internal_f 
 void get_page_faults(u64 *o_page_faults, u64 *o_page_faults_hard)
@@ -64,6 +66,57 @@ void get_page_faults(u64 *o_page_faults, u64 *o_page_faults_hard)
     }
 }
 
+internal_f u64
+get_memory_page_size()
+{
+    return getpagesize();
+}
+
+#else // __APPLE__
+
+internal_f void
+get_page_faults(u64 *o_page_faults, u64 *o_page_faults_hard)
+{
+    printf("get_page_faults not implemented for this platform")
+}
+
+internal_f u64
+get_memory_page_size()
+{
+    printf("get_memory_page_size  not implemented for this platform");
+    return 0;
+}
+
+#endif // Platforms implementation
+
+void InitPageTouchingTest(u32 _page_count)
+{
+    u64 page_size = get_memory_page_size();
+    u64 total_size = _page_count * page_size;
+    
+    printf("Page Count, Touch Count, Fault Count, Extra Faults\n");
+    
+    for(u64 touch_count = 0; touch_count < _page_count; ++touch_count)
+    {
+        u64 touch_size = page_size * touch_count;
+        u8 *data = (u8*)mmap(0, total_size, PROT_READ | PROT_WRITE,MAP_SHARED | MAP_PRIVATE | MAP_ANON, -1, 0);
+        if (data)
+        {
+            u64 start_faults, start_hard;
+            get_page_faults(&start_faults, &start_hard);
+            for (u64 i = 0; i < touch_size; ++i)
+            {
+                data[total_size - 1 - i] = (u8)i;
+            }
+            u64 end_faults, end_hard;
+            get_page_faults(&end_faults, &end_hard);
+            u64 faults = end_faults - start_faults;
+            printf("%u, %llu, %llu, %lld\n", _page_count, touch_count, faults, (faults - touch_count));
+            
+            munmap(data, total_size);
+        }
+    }
+}
 
 internal_f void
 InitTester(repetition_tester *tester, u8 test_time, u64 Bytes, const char* name)
@@ -153,6 +206,6 @@ PrintStatus(repetition_tester *_tester)
     u64 page_faults = 0; 
     u64 page_faults_hard = 0;
     get_page_faults(&page_faults, &page_faults_hard);
-	printf("Memory Page Size: %i Kb, Page faults: %llu , Page faults hard %llu \n", getpagesize() / 1024, page_faults - _tester->page_faults_start, page_faults_hard - _tester->page_faults_hard_start);
+	printf("Memory Page Size: %llu Kb, Page faults: %llu , Page faults hard %llu \n", get_memory_page_size() / 1024, page_faults - _tester->page_faults_start, page_faults_hard - _tester->page_faults_hard_start);
 	printf("================================== \n");
 }

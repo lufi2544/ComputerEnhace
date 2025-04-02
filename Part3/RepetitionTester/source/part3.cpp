@@ -14,7 +14,7 @@ struct read_params
 
 int main (int args_num, const char** args)
 {
-	static repetition_tester tester;
+	/*static repetition_tester tester;
     static repetition_tester tester1;
 	
     
@@ -54,7 +54,11 @@ int main (int args_num, const char** args)
     
     PrintStatus(&tester);
     
-    fclose(file);
+    fclose(file);*/
+    
+    
+    InitPageTouchingTest(16384);
+    
     return 0;
     
 };

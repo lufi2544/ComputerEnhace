@@ -1,10 +1,11 @@
 
 #include "types.h"
 #include <cstdio>
+#include "sys/stat.h"
 
 #include "rep_tester.cpp"
 #include "ishak_buffer.cpp"
-#include "sys/stat.h"
+#include "memory_pointer_observer.cpp"
 
 struct read_params
 {
@@ -57,7 +58,9 @@ int main (int args_num, const char** args)
     fclose(file);*/
     
     
-    InitPageTouchingTest(16384);
+    //InitPageTouchingTest(4096);
+    
+    void* data = memory_ptr_test();
     
     return 0;
     

@@ -1,12 +1,13 @@
 
-#include "cpu_defines_single.cpp"
+#include "Profiling/source/cpu_defines_single.cpp"
 
 #ifdef __APPLE__
 #include <mach/mach.h>
 #include <sys/mman.h>
+#include <unistd.h>
 #endif // __APPLE__
 
-#include <unistd.h>
+
 
 //////////
 //The intention of this object is to test different functionalities 
@@ -72,23 +73,6 @@ get_memory_page_size()
     return getpagesize();
 }
 
-#else // __APPLE__
-
-internal_f void
-get_page_faults(u64 *o_page_faults, u64 *o_page_faults_hard)
-{
-    printf("get_page_faults not implemented for this platform")
-}
-
-internal_f u64
-get_memory_page_size()
-{
-    printf("get_memory_page_size  not implemented for this platform");
-    return 0;
-}
-
-#endif // Platforms implementation
-
 void InitPageTouchingTest(u32 _page_count)
 {
     u64 page_size = get_memory_page_size();
@@ -117,6 +101,32 @@ void InitPageTouchingTest(u32 _page_count)
         }
     }
 }
+
+
+#else // __APPLE__
+
+internal_f void
+get_page_faults(u64 *o_page_faults, u64 *o_page_faults_hard)
+{
+    printf("get_page_faults not implemented for this platform");
+}
+
+internal_f u64
+get_memory_page_size()
+{
+    printf("get_memory_page_size  not implemented for this platform");
+    return 0;
+}
+
+void InitPageTouchingTest(u32 _page_count)
+{
+	
+	printf("InitPageTouchingtest is not implemented for this Platform");	
+}
+
+
+#endif // Platforms implementation
+
 
 internal_f void
 InitTester(repetition_tester *tester, u8 test_time, u64 Bytes, const char* name)

@@ -420,7 +420,7 @@ struct json_object
                 PROFILE_BLOCK_BANDWITH("Reading file", Result.Size)
                 // Reading the bytes from the opened file.
                 
-                // (juanes.rayo): we could also do: fread(Result.Bytes, Result.Count, 1, file);
+                // (juanes.rayo): we could also do: fread(Result.Bytes, 1, Result.Size, file);
                 
                 // so through this way, we can allocate just 1 buffer with the size of the entire file
                 // this is fine as the out pointers is going to point to the first element anyways

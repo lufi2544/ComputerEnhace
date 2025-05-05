@@ -6,6 +6,7 @@
 #include "rep_tester.cpp"
 #include "ishak_buffer.cpp"
 #include "memory_pointer_observer.cpp"
+#include "circular_buffer.cpp"
 
 struct read_params
 {
@@ -60,7 +61,18 @@ int main (int args_num, const char** args)
     
     //InitPageTouchingTest(4096);
     
-    void* data = memory_ptr_test();
+    
+    // void* data = memory_ptr_test();
+    
+    int to_map = (getpagesize() * 4) / sizeof(int);
+    int pages;
+    u8*base = (u8*)init_circular_buffer_test(to_map * sizeof(int), &pages);
+    base[0] = 122;
+    for(int i = 0; i < pages; ++i)
+    {
+        u8 *it = base + (getpagesize() * i);
+        printf("Page %i : %i \n", i, it[0]);
+    }
     
     return 0;
     

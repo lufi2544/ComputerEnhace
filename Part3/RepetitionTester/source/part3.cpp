@@ -57,9 +57,16 @@ int main (int args_num, const char** args)
     PrintStatus(&tester);
     
     fclose(file);*/
-        
-    //InitPageTouchingTest(4096);            
-	memory_ptr_test();
+    
+    //1.
+    InitPageTouchingTest(4096);            
+	
+	//2.
+	//memory_ptr_test();
+	
+	//3.
+	
+	
     return 0;
     
 };

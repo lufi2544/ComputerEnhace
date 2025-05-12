@@ -15,7 +15,7 @@ print_binary_bits(u64 _value, u32 _first_bit, u32 _bit_count)
 {
     for (u32 bit_index = 0; bit_index < _bit_count; ++bit_index)
     {
-        u64 Bit = (_value >> ((_bit_count - 1 - bit_index) + _first_bit)) & 1;
+        u64 Bit = (_value >> (_first_bit + (_bit_count - 1 + bit_index))) & 1;
         printf("%c", Bit ? '1' : '0');
     }
 }
@@ -67,7 +67,21 @@ print_address(void* _ptr)
     printf("|");
     print_binary_bits(address, 0, 14);
 	
-	#endif // __APPLE__
+#endif // __APPLE__
+	
+#ifdef _WIN32
+	print_binary_bits(address, 48, 12);
+    printf("|");
+    print_binary_bits(address, 36, 12);
+    printf("|");
+    print_binary_bits(address, 27, 9);
+    printf("|");
+    print_binary_bits(address, 18, 9);
+    printf("|");
+    print_binary_bits(address, 9, 9);
+    printf("|");
+    print_binary_bits(address, 0, 9);
+	#endif //_WIN32
     printf("\n");
     
     address_info_t address_info = decompose_ptr(_ptr);
@@ -81,18 +95,21 @@ memory_ptr_test()
 {
     //for (int idx = 0; idx < 16; ++idx)
     
-    u8 page_id = 2;
+    u8 page_offset = 2;
     u8 offset_within_page = 1;
+	u8 page_size = 0;
 #ifdef __APPLE__
     void *data = mmap(0, 1024*1024, PROT_READ | PROT_WRITE ,MAP_ANON | MAP_PRIVATE, -1, 0);
+	page_size =16;
 #endif // __APPLE__
 	
 #ifdef _WIN32
 	void *data = VirtualAlloc(0, 1024 * 1024, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+	page_size = 4;
 #endif //_WIN32
 	
     print_address(data);
-    u8* modified_data = (u8*)data + ((16*1024 * page_id) + sizeof(u8) * offset_within_page);
+    u8* modified_data = (u8*)data + ((page_size * 1024 * page_offset) + sizeof(u8) * offset_within_page);
     
     *modified_data = 255;
     

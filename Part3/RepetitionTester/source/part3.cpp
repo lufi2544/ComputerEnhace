@@ -58,7 +58,8 @@ int main (int args_num, const char** args)
     
     fclose(file);*/
         
-    InitPageTouchingTest(4096);            
+    //InitPageTouchingTest(4096);            
+	memory_ptr_test();
     return 0;
     
 };

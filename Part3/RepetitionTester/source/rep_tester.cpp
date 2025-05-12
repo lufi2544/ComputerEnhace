@@ -7,6 +7,13 @@
 #include <unistd.h>
 #endif // __APPLE__
 
+#ifdef _WIN32
+
+#include <sysinfoapi.h>
+#include <psapi.h>
+
+#endif //_WIN32
+
 
 
 //////////
@@ -46,11 +53,23 @@ struct repetition_tester
     u64 page_faults_hard_start_worst;
 };
 
-#ifdef __APPLE__
+#if defined(_WIN32)
+
+struct os_metrics
+{
+	b32 initialized;
+	HANDLE processHandle;
+};
+
+static os_metrics GlobalMetrics;
+
+#endif // _WIN32
 
 internal_f 
 void get_page_faults(u64 *o_page_faults, u64 *o_page_faults_hard)
 {
+#if defined (__APPLE__)
+	
     task_events_info_data_t info;
     mach_msg_type_number_t count = TASK_EVENTS_INFO_COUNT;
     mach_port_t task = mach_task_self();
@@ -65,25 +84,92 @@ void get_page_faults(u64 *o_page_faults, u64 *o_page_faults_hard)
         *o_page_faults = 0;
         *o_page_faults_hard = 0;
     }
+	
+#elif defined (_WIN32)
+	
+	PROCESS_MEMORY_COUNTERS_EX MemoryCounters = {};
+    MemoryCounters.cb = sizeof(MemoryCounters);
+    GetProcessMemoryInfo(GlobalMetrics.processHandle, (PROCESS_MEMORY_COUNTERS *)&MemoryCounters, sizeof(MemoryCounters));
+    
+    *o_page_faults = MemoryCounters.PageFaultCount;
+	*o_page_faults_hard = 0;
+	
+	
+#else 	
+	printf("get_page_faults not implemented for this platform. \n");	
+#endif // PLATFORMS
+	
+	
 }
 
 internal_f u64
 get_memory_page_size()
 {
+#if defined (__APPLE__)
+	
     return getpagesize();
+	
+#elif defined (_WIN32)
+	
+	struct _SYSTEM_INFO sys_info;
+	GetSystemInfo(&sys_info);
+	
+	return sys_info.dwPageSize;
+	
+#endif // PLATFOMRS
+}
+
+u8* Allocate(u64 _size)
+{
+	u8 *result = 0;
+#if defined (__APPLE__)
+	
+	result = (u8*)mmap(0, _size, PROT_READ | PROT_WRITE,MAP_SHARED | MAP_PRIVATE | MAP_ANON, -1, 0);
+	
+#elif defined (_WIN32)
+	
+	result = (u8*)VirtualAlloc(0, _size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+	
+#endif //PLATFORMS
+	
+	return result;
+}
+
+void Deallocate(u8 *_memory, u64 _size)
+{	
+#if defined (__APPLE__)			
+	
+	munmap(_memory, _size);
+	
+#elif defined (_WIN32)
+	
+	VirtualFree(_memory, 0, MEM_RELEASE);
+	
+#endif // PLATFORMS	
 }
 
 void InitPageTouchingTest(u32 _page_count)
 {
+	
+#ifdef _WIN32
+	if(!GlobalMetrics.initialized)
+    {
+        GlobalMetrics.initialized = true;
+        GlobalMetrics.processHandle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, GetCurrentProcessId());
+    }
+#endif //_WIN32
+	
     u64 page_size = get_memory_page_size();
     u64 total_size = _page_count * page_size;
     
+	printf("Page Size: %llu \n", page_size);
     printf("Page Count, Touch Count, Fault Count, Extra Faults\n");
     
     for(u64 touch_count = 0; touch_count < _page_count; ++touch_count)
     {
-        u64 touch_size = page_size * touch_count;
-        u8 *data = (u8*)mmap(0, total_size, PROT_READ | PROT_WRITE,MAP_SHARED | MAP_PRIVATE | MAP_ANON, -1, 0);
+        u64 touch_size = page_size * touch_count;		
+		u8 *data = Allocate(total_size);
+		
         if (data)
         {
             u64 start_faults, start_hard;
@@ -96,36 +182,11 @@ void InitPageTouchingTest(u32 _page_count)
             get_page_faults(&end_faults, &end_hard);
             u64 faults = end_faults - start_faults;
             printf("%u, %llu, %llu, %lld\n", _page_count, touch_count, faults, (faults - touch_count));
-            
-            munmap(data, total_size);
+			
+			Deallocate(data, total_size);
         }
     }
 }
-
-
-#else // __APPLE__
-
-internal_f void
-get_page_faults(u64 *o_page_faults, u64 *o_page_faults_hard)
-{
-    printf("get_page_faults not implemented for this platform");
-}
-
-internal_f u64
-get_memory_page_size()
-{
-    printf("get_memory_page_size  not implemented for this platform");
-    return 0;
-}
-
-void InitPageTouchingTest(u32 _page_count)
-{
-	
-	printf("InitPageTouchingtest is not implemented for this Platform");	
-}
-
-
-#endif // Platforms implementation
 
 
 internal_f void

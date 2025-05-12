@@ -57,7 +57,7 @@ int main (int args_num, const char** args)
     fclose(file);*/
     
     
-    InitPageTouchingTest(16384);
+    InitPageTouchingTest(4096);
     
     return 0;
     

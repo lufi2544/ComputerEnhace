@@ -6,7 +6,7 @@ set CFLAGS=/std:c++17 /Zi
 set SRC_FILES=part3.cpp
 set CE_DIR=../../../../ComputerEnhace
 set CE_DIR_1=%CE_DIR%/Part1
-set CE_DIR_2=%CE_DIR%/Part2
+set CE_DIR_2=%CE_DIR%/Part2/profiling/source
 
 
 if not exist %BIN_DIR% mkdir %BIN_DIR%

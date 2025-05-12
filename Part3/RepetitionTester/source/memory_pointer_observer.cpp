@@ -53,6 +53,8 @@ print_address(void* _ptr)
 {
     u64 address = (u64)_ptr;
     printf("Address: %llu ", address);
+#ifdef __APPLE__
+	
     print_binary_bits(address, 48, 16);
     printf("|");
     print_binary_bits(address, 47, 1);
@@ -64,6 +66,8 @@ print_address(void* _ptr)
     print_binary_bits(address, 14, 11);
     printf("|");
     print_binary_bits(address, 0, 14);
+	
+	#endif // __APPLE__
     printf("\n");
     
     address_info_t address_info = decompose_ptr(_ptr);
@@ -79,7 +83,14 @@ memory_ptr_test()
     
     u8 page_id = 2;
     u8 offset_within_page = 1;
+#ifdef __APPLE__
     void *data = mmap(0, 1024*1024, PROT_READ | PROT_WRITE ,MAP_ANON | MAP_PRIVATE, -1, 0);
+#endif // __APPLE__
+	
+#ifdef _WIN32
+	void *data = VirtualAlloc(0, 1024 * 1024, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+#endif //_WIN32
+	
     print_address(data);
     u8* modified_data = (u8*)data + ((16*1024 * page_id) + sizeof(u8) * offset_within_page);
     

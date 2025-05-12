@@ -1,7 +1,9 @@
 //
 
+#ifdef __APPLE__
 #include <sys/mman.h>
 #include <fcntl.h>
+#endif //__APPLE__
 
 void *init_circular_buffer_test(int size, int *pages)
 {
@@ -36,4 +38,6 @@ void *init_circular_buffer_test(int size, int *pages)
     return base;
 #else 
 #endif // PLATFORMS
+	
+	return 0;
 }

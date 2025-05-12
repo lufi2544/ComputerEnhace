@@ -1,5 +1,5 @@
 
-#include "Profiling/source/cpu_defines_single.cpp"
+#include "cpu_defines_single.cpp"
 
 #ifdef __APPLE__
 #include <mach/mach.h>
@@ -25,8 +25,8 @@
 struct repetition_tester
 {
 	repetition_tester() = default;
-	
-	bool b_is_testing;
+    
+    bool b_is_testing;
 	u8 test_time;
 	const char* name;
 	u64 bytes_to_test;

@@ -1,10 +1,12 @@
 
 #include "types.h"
 #include <cstdio>
+#include "sys/stat.h"
 
 #include "rep_tester.cpp"
 #include "ishak_buffer.cpp"
-#include "sys/stat.h"
+#include "memory_pointer_observer.cpp"
+#include "circular_buffer.cpp"
 
 struct read_params
 {
@@ -55,10 +57,8 @@ int main (int args_num, const char** args)
     PrintStatus(&tester);
     
     fclose(file);*/
-    
-    
-    InitPageTouchingTest(4096);
-    
+        
+    InitPageTouchingTest(4096);            
     return 0;
     
 };
